@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "geoshot CLI",
+  "description": "GPX/KML → image CLI tool for AI agents",
+  "commands": {
+    "info": {
+      "description": "Show track statistics and metadata",
+      "usage": "geoshot info -i <file> [--output-format json]",
+      "parameters": {
+        "--input, -i": { "type": "string", "required": true, "description": "Input GPX or KML file path" },
+        "--output-format": { "type": "string", "enum": ["human", "json"], "default": "human" },
+        "--quiet, -q": { "type": "boolean", "default": false }
+      }
+    },
+    "image": {
+      "description": "Render a track to an image",
+      "usage": "geoshot image -i <file> -o <output> [options]",
+      "parameters": {
+        "--input, -i": { "type": "string", "required": true, "description": "Input GPX or KML file path" },
+        "--output, -o": { "type": "string", "required": true, "description": "Output image file (png, jpg, webp)" },
+        "--width, -w": { "type": "integer", "default": 1920, "min": 100, "max": 7680 },
+        "--height, -h": { "type": "integer", "default": 1080, "min": 100, "max": 4320 },
+        "--dpi": { "type": "integer", "default": 2, "min": 1, "max": 4 },
+        "--color-by": { "type": "string", "enum": ["elevation", "speed", "gradient", "none"], "default": "elevation" },
+        "--color-ramp": { "type": "string", "enum": ["turbo", "viridis", "plasma", "inferno", "rdylgn"], "default": "turbo" },
+        "--style": { "type": "string", "enum": ["outdoor", "dark", "light", "topo", "satellite"], "default": "outdoor" },
+        "--perspective": { "type": "string", "enum": ["auto", "overhead", "north-up"], "default": "auto" },
+        "--track-width": { "type": "number", "default": 4, "min": 1, "max": 20 },
+        "--markers": { "type": "boolean", "default": true },
+        "--padding": { "type": "integer", "default": 60, "min": 0, "max": 200 },
+        "--mapbox-token": { "type": "string", "description": "Required for satellite style" },
+        "--output-format": { "type": "string", "enum": ["human", "json"], "default": "human" },
+        "--quiet, -q": { "type": "boolean", "default": false }
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "success": { "type": "boolean" },
+      "command": { "type": "string" },
+      "input": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string" },
+          "format": { "type": "string" },
+          "tracks": { "type": "integer" },
+          "points": { "type": "integer" },
+          "distance_km": { "type": "number" },
+          "elevation_gain_m": { "type": "number" }
+        }
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string" },
+          "format": { "type": "string" },
+          "width": { "type": "integer" },
+          "height": { "type": "integer" },
+          "size_bytes": { "type": "integer" }
+        }
+      },
+      "stats": { "type": "object" },
+      "timing": {
+        "type": "object",
+        "properties": {
+          "parse_ms": { "type": "integer" },
+          "render_ms": { "type": "integer" },
+          "total_ms": { "type": "integer" }
+        }
+      },
+      "error": { "type": "string" }
+    }
+  }
+}

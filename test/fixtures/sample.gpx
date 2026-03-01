@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="geoshot-test"
+  xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Test Trail Run</name>
+    <trkseg>
+      <trkpt lat="47.6062" lon="-122.3321"><ele>50</ele><time>2024-01-15T10:00:00Z</time></trkpt>
+      <trkpt lat="47.6070" lon="-122.3310"><ele>55</ele><time>2024-01-15T10:01:00Z</time></trkpt>
+      <trkpt lat="47.6080" lon="-122.3295"><ele>62</ele><time>2024-01-15T10:02:00Z</time></trkpt>
+      <trkpt lat="47.6088" lon="-122.3280"><ele>70</ele><time>2024-01-15T10:03:00Z</time></trkpt>
+      <trkpt lat="47.6095" lon="-122.3265"><ele>80</ele><time>2024-01-15T10:04:00Z</time></trkpt>
+      <trkpt lat="47.6100" lon="-122.3250"><ele>90</ele><time>2024-01-15T10:05:30Z</time></trkpt>
+      <trkpt lat="47.6108" lon="-122.3235"><ele>100</ele><time>2024-01-15T10:06:30Z</time></trkpt>
+      <trkpt lat="47.6115" lon="-122.3220"><ele>110</ele><time>2024-01-15T10:07:30Z</time></trkpt>
+      <trkpt lat="47.6120" lon="-122.3205"><ele>115</ele><time>2024-01-15T10:08:30Z</time></trkpt>
+      <trkpt lat="47.6128" lon="-122.3190"><ele>120</ele><time>2024-01-15T10:09:30Z</time></trkpt>
+      <trkpt lat="47.6135" lon="-122.3175"><ele>118</ele><time>2024-01-15T10:10:30Z</time></trkpt>
+      <trkpt lat="47.6140" lon="-122.3160"><ele>112</ele><time>2024-01-15T10:11:30Z</time></trkpt>
+      <trkpt lat="47.6148" lon="-122.3145"><ele>105</ele><time>2024-01-15T10:12:30Z</time></trkpt>
+      <trkpt lat="47.6155" lon="-122.3130"><ele>100</ele><time>2024-01-15T10:13:30Z</time></trkpt>
+      <trkpt lat="47.6160" lon="-122.3115"><ele>95</ele><time>2024-01-15T10:14:30Z</time></trkpt>
+      <trkpt lat="47.6168" lon="-122.3100"><ele>88</ele><time>2024-01-15T10:15:30Z</time></trkpt>
+      <trkpt lat="47.6175" lon="-122.3085"><ele>82</ele><time>2024-01-15T10:16:30Z</time></trkpt>
+      <trkpt lat="47.6180" lon="-122.3070"><ele>75</ele><time>2024-01-15T10:17:30Z</time></trkpt>
+      <trkpt lat="47.6185" lon="-122.3055"><ele>70</ele><time>2024-01-15T10:18:30Z</time></trkpt>
+      <trkpt lat="47.6190" lon="-122.3040"><ele>65</ele><time>2024-01-15T10:19:30Z</time></trkpt>
+    </trkseg>
+  </trk>
+</gpx>

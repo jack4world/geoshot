@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Test KML Track</name>
+    <Placemark>
+      <name>Sample Route</name>
+      <LineString>
+        <altitudeMode>absolute</altitudeMode>
+        <coordinates>
+          -122.3321,47.6062,50
+          -122.3310,47.6070,55
+          -122.3295,47.6080,62
+          -122.3280,47.6088,70
+          -122.3265,47.6095,80
+          -122.3250,47.6100,90
+          -122.3235,47.6108,100
+          -122.3220,47.6115,110
+          -122.3205,47.6120,115
+          -122.3190,47.6128,120
+        </coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/maplibre-contour@0.1.0/dist/index.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #map { width: 100%; height: 100%; }
+
+    /* ── Waypoint markers ── */
+    .wp {
+      display: flex; align-items: center; gap: 6px;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      pointer-events: none;
+    }
+    .wp-dot {
+      width: 14px; height: 14px; border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.95);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1);
+      flex-shrink: 0;
+    }
+    .wp-label {
+      font-size: 11px; font-weight: 600; line-height: 1;
+      padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    }
+    .wp-start .wp-dot { background: #22c55e; box-shadow: 0 0 12px rgba(34,197,94,0.5), 0 2px 6px rgba(0,0,0,0.2); }
+    .wp-end   .wp-dot { background: #ef4444; box-shadow: 0 0 12px rgba(239,68,68,0.5), 0 2px 6px rgba(0,0,0,0.2); }
+    .wp-peak  .wp-dot { background: #f59e0b; box-shadow: 0 0 12px rgba(245,158,11,0.5), 0 2px 6px rgba(0,0,0,0.2); }
+    .wp-km    .wp-dot { width: 8px; height: 8px; background: rgba(255,255,255,0.95); border: 2px solid #818cf8; box-shadow: 0 0 8px rgba(129,140,248,0.4); }
+    .wp-start .wp-label { background: rgba(34,197,94,0.88); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+    .wp-end   .wp-label { background: rgba(239,68,68,0.88); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+    .wp-peak  .wp-label { background: rgba(245,158,11,0.9); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+    .wp-km    .wp-label { background: rgba(255,255,255,0.85); color: #333; font-size: 10px; font-weight: 500; border: 1px solid rgba(0,0,0,0.06); }
+
+    /* ── Portrait waypoints — larger with glow ── */
+    .portrait .wp-dot { width: 20px; height: 20px; border-width: 3px; }
+    .portrait .wp-label { font-size: 14px; padding: 6px 12px; border-radius: 8px; }
+    .portrait .wp-km .wp-dot { width: 12px; height: 12px; }
+    .portrait .wp-km .wp-label { font-size: 12px; }
+
+    /* ── Cinematic vignette on map ── */
+    .vignette {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none; z-index: 1;
+      box-shadow: inset 0 0 120px 30px rgba(0,0,0,0.15);
+    }
+
+    /* ── Shared panel base ── */
+    .overlay-panel {
+      position: absolute; z-index: 10;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      pointer-events: none;
+    }
+    .overlay-panel.theme-dark  { color: #fff; }
+    .overlay-panel.theme-light { color: #1a1a2e; }
+
+    /* ═══════════════════════════════════════
+       LANDSCAPE layout (bottom strip)
+       ═══════════════════════════════════════ */
+    .land-bottom {
+      bottom: 0; left: 0; right: 0;
+    }
+    .land-bottom .card {
+      margin: 0 24px 20px 24px;
+      border-radius: 16px; overflow: hidden;
+    }
+    .theme-dark .card {
+      background: rgba(10,10,20,0.68);
+      backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .theme-light .card {
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(24px) saturate(1.3); -webkit-backdrop-filter: blur(24px) saturate(1.3);
+      border: 1px solid rgba(255,255,255,0.5);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    /* Landscape title */
+    .land-bottom .panel-header { padding: 18px 24px 0 24px; }
+    .land-bottom .panel-title  { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+
+    /* Landscape stats */
+    .land-bottom .panel-stats { display: flex; gap: 28px; padding: 12px 24px 0 24px; }
+    .land-bottom .stat-value { font-size: 20px; font-weight: 800; line-height: 1.2; letter-spacing: -0.3px; }
+    .land-bottom .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.4; margin-top: 2px; }
+
+    /* Landscape charts side-by-side */
+    .profiles-row { display: flex; gap: 0; padding: 8px 24px 10px 24px; }
+    .profile-col { flex: 1; min-width: 0; position: relative; }
+    .profile-col + .profile-col { margin-left: 16px; }
+    .profile-section-label {
+      font-size: 9px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.8px; opacity: 0.45; margin-bottom: 2px;
+    }
+    .profile-canvas { display: block; width: 100%; }
+
+    /* Single chart wrappers */
+    .profile-wrap { padding: 8px 24px 14px 24px; position: relative; }
+    .speed-profile-wrap { padding: 4px 24px 10px 24px; position: relative; }
+
+    /* Badges */
+    .steep-badges { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 24px 12px 24px; }
+    .steep-badge {
+      font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .theme-dark  .steep-badge { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.85); }
+    .theme-light .steep-badge { background: rgba(0,0,0,0.07);      color: rgba(0,0,0,0.7); }
+    .badge-steep { color: #f97316; }
+    .theme-light .badge-steep { color: #ea580c; }
+
+    /* ═══════════════════════════════════════
+       PORTRAIT poster layout
+       ═══════════════════════════════════════ */
+
+    /* Top hero bar — cinematic gradient overlay */
+    .port-top {
+      top: 0; left: 0; right: 0;
+      padding: 56px 40px 80px 40px;
+      background: linear-gradient(
+        180deg,
+        rgba(0,0,0,0.62) 0%,
+        rgba(0,0,0,0.35) 40%,
+        rgba(0,0,0,0.1) 75%,
+        transparent 100%
+      );
+      color: #fff !important;
+    }
+    .port-top .hero-title {
+      font-size: 48px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.12;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.5), 0 0 60px rgba(0,0,0,0.15);
+    }
+    .port-top .hero-accent {
+      width: 40px; height: 3px; border-radius: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
+      margin: 14px 0 12px 0;
+    }
+    .port-top .hero-subtitle {
+      font-size: 16px; font-weight: 500; opacity: 0.8;
+      letter-spacing: 0.5px; line-height: 1.5;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.3);
+    }
+    .port-top .hero-subtitle .hl-dot {
+      display: inline-block; width: 3px; height: 3px; border-radius: 50%;
+      background: rgba(255,255,255,0.5); vertical-align: middle;
+      margin: 0 10px;
+    }
+
+    /* Bottom data card — enhanced glass */
+    .port-bottom {
+      bottom: 0; left: 0; right: 0;
+    }
+    .port-bottom .card {
+      margin: 0 20px 28px 20px;
+      border-radius: 24px; overflow: hidden;
+      padding: 32px 32px 24px 32px;
+    }
+
+    /* Portrait stats — grid layout with big numbers */
+    .port-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 20px 12px; margin-bottom: 24px;
+      padding-bottom: 20px;
+    }
+    .theme-light .port-stats { border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .theme-dark  .port-stats { border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .port-stat {}
+    .port-stat-value { font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -0.8px; }
+    .port-stat-unit  { font-size: 13px; font-weight: 500; opacity: 0.45; margin-left: 2px; }
+    .port-stat-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1.2px; opacity: 0.35; margin-top: 3px;
+    }
+
+    /* Portrait charts — stacked full-width */
+    .port-chart-section { margin-bottom: 16px; }
+    .port-chart-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1.2px; opacity: 0.35; margin-bottom: 6px;
+    }
+    .port-chart-canvas { display: block; width: 100%; }
+
+    /* Portrait badges — refined glass pills */
+    .port-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+    .port-badges .steep-badge {
+      font-size: 12px; padding: 6px 14px; border-radius: 10px;
+    }
+    .theme-light .port-badges .steep-badge {
+      background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06);
+    }
+    .theme-dark .port-badges .steep-badge {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.06);
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    function initMap(config) {
+      return new Promise((resolve, reject) => {
+        var isPortrait = window.innerHeight > window.innerWidth * 1.2;
+        if (isPortrait) document.body.classList.add('portrait');
+
+        // Add cinematic vignette for portrait
+        if (isPortrait) {
+          var vig = document.createElement('div'); vig.className = 'vignette';
+          document.body.appendChild(vig);
+        }
+
+        const map = new maplibregl.Map({
+          container: 'map',
+          style: config.style,
+          center: config.center,
+          zoom: config.zoom,
+          pitch: config.pitch || 0,
+          bearing: config.bearing || 0,
+          attributionControl: false,
+          preserveDrawingBuffer: true,
+          fadeDuration: 0,
+          interactive: false,
+        });
+
+        map.on('error', (e) => { console.error('Map error:', e.error); });
+
+        map.on('load', () => {
+          // ── Contour lines ──
+          if (config.contours && typeof mlcontour !== 'undefined') {
+            const demSource = new mlcontour.DemSource({
+              url: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+              encoding: 'terrarium', maxzoom: 13,
+            });
+            demSource.setupMaplibre(maplibregl);
+            map.addSource('contour-dem', {
+              type: 'raster-dem', tiles: [demSource.sharedDemProtocolUrl],
+              tileSize: 514, maxzoom: 13,
+            });
+            map.addSource('contour-source', {
+              type: 'vector',
+              tiles: [demSource.contourProtocolUrl({
+                thresholds: { 11:[100,500], 12:[50,200], 13:[20,100], 14:[10,50], 15:[10,50] },
+                elevationKey: 'ele', levelKey: 'level', contourLayer: 'contours',
+              })],
+              maxzoom: 16,
+            });
+            const layers = map.getStyle().layers;
+            let beforeLayer;
+            for (const l of layers) { if (l.type === 'symbol') { beforeLayer = l.id; break; } }
+            map.addLayer({
+              id: 'contour-lines', type: 'line', source: 'contour-source', 'source-layer': 'contours',
+              paint: { 'line-color': config.contourColor || 'rgba(100,100,100,0.4)', 'line-width': ['match',['get','level'],1,1,0.35], 'line-opacity': 0.5 },
+            }, beforeLayer);
+            map.addLayer({
+              id: 'contour-labels', type: 'symbol', source: 'contour-source', 'source-layer': 'contours',
+              filter: ['==',['get','level'],1],
+              layout: { 'symbol-placement':'line', 'text-field':['concat',['number-format',['get','ele'],{}],' m'], 'text-font':['Noto Sans Regular'], 'text-size':9, 'text-max-angle':25, 'text-padding':20 },
+              paint: { 'text-color': config.contourLabelColor||'rgba(80,80,80,0.65)', 'text-halo-color': config.contourHaloColor||'rgba(255,255,255,0.6)', 'text-halo-width':1.5 },
+            });
+          }
+
+          // ── Track casing + main layer ──
+          map.addSource('track', config.trackSource);
+          var trackPaint = config.trackLayer.paint || {};
+          var baseWidth = trackPaint['line-width'] || 4;
+          var casingExtra = isPortrait ? 5 : 3;
+          map.addLayer({
+            id: 'track-casing', type: 'line', source: 'track',
+            layout: { 'line-join':'round', 'line-cap':'round' },
+            paint: { 'line-width': baseWidth + casingExtra, 'line-color': 'rgba(0,0,0,0.45)', 'line-opacity': 0.7 },
+          });
+          map.addLayer(config.trackLayer);
+
+          // ── Waypoint markers ──
+          if (config.waypoints && config.waypoints.length > 0) {
+            config.waypoints.forEach(function(wp) {
+              var el = document.createElement('div');
+              el.className = 'wp wp-' + wp.type;
+              var dot = document.createElement('div'); dot.className = 'wp-dot'; el.appendChild(dot);
+              var label = document.createElement('div'); label.className = 'wp-label';
+              label.textContent = wp.label + (wp.sublabel ? ' ' + wp.sublabel : '');
+              el.appendChild(label);
+              new maplibregl.Marker({ element: el, anchor: 'left', offset: [8, 0] })
+                .setLngLat([wp.lon, wp.lat]).addTo(map);
+            });
+          } else if (config.markers) {
+            var s = document.createElement('div'); s.className = 'wp wp-start';
+            s.innerHTML = '<div class="wp-dot"></div><div class="wp-label">起点</div>';
+            new maplibregl.Marker({ element: s, anchor:'left', offset:[8,0] })
+              .setLngLat([config.markers.start.lon, config.markers.start.lat]).addTo(map);
+            var e = document.createElement('div'); e.className = 'wp wp-end';
+            e.innerHTML = '<div class="wp-dot"></div><div class="wp-label">终点</div>';
+            new maplibregl.Marker({ element: e, anchor:'left', offset:[8,0] })
+              .setLngLat([config.markers.end.lon, config.markers.end.lat]).addTo(map);
+          }
+
+          // ── Calculate fitBounds padding ──
+          var basePad = config.padding;
+          var hasElev = config.overlay && config.overlay.profile && config.overlay.profile.length > 1;
+          var hasSpeed = config.overlay && config.overlay.speedProfile && config.overlay.speedProfile.length > 1;
+          var topPad, bottomPad, sidePad;
+
+          if (isPortrait && config.overlay) {
+            // Portrait: top hero ~160px, bottom card ~55% of height
+            topPad = 180;
+            // bottom card: stats(~100) + chart1(~130) + chart2(~130) + badges(~50) + padding(~60)
+            var cardH = 160; // stats + margins
+            if (hasElev) cardH += 150;
+            if (hasSpeed) cardH += 150;
+            cardH += 60; // badges + padding
+            bottomPad = cardH + 24;
+            sidePad = 40;
+          } else {
+            topPad = basePad;
+            sidePad = basePad;
+            var overlayH = 0;
+            if (config.overlay) {
+              overlayH = 120;
+              if (hasElev || hasSpeed) overlayH += 140;
+              overlayH += 40;
+            }
+            bottomPad = basePad + overlayH;
+          }
+
+          map.fitBounds(
+            [[config.bounds[0], config.bounds[1]], [config.bounds[2], config.bounds[3]]],
+            { padding: { top: topPad, right: sidePad, bottom: bottomPad, left: sidePad }, duration: 0, maxZoom: 18 }
+          );
+
+          // ── Render overlay ──
+          if (config.overlay) {
+            if (isPortrait) renderPortraitOverlay(config);
+            else renderLandscapeOverlay(config);
+          }
+
+          map.once('idle', () => { map.triggerRepaint(); setTimeout(() => resolve(), 800); });
+        });
+      });
+    }
+
+    /* ═══════════════════════════════════
+       LANDSCAPE overlay (existing logic)
+       ═══════════════════════════════════ */
+    function renderLandscapeOverlay(config) {
+      var o = config.overlay;
+      var isLight = ['light','outdoor','topo','bright','positron','liberty'].includes(config.styleName||'');
+      var theme = isLight ? 'theme-light' : 'theme-dark';
+      var panel = document.createElement('div');
+      panel.className = 'overlay-panel land-bottom ' + theme;
+      var html = '<div class="card">';
+
+      // Title
+      html += '<div class="panel-header">';
+      if (o.title) html += '<div class="panel-title">' + o.title + '</div>';
+      html += '</div>';
+
+      // Stats
+      html += '<div class="panel-stats">';
+      var stats = buildStatsList(o);
+      stats.forEach(function(s) {
+        html += '<div class="stat"><div class="stat-value">' + s.value + '</div><div class="stat-label">' + s.label + '</div></div>';
+      });
+      html += '</div>';
+
+      // Charts
+      var hasE = o.profile && o.profile.length > 1;
+      var hasS = o.speedProfile && o.speedProfile.length > 1;
+      if (hasE && hasS) {
+        html += '<div class="profiles-row">';
+        html += '<div class="profile-col" id="profile-wrap"><div class="profile-section-label">海拔</div><canvas id="profile-canvas" class="profile-canvas"></canvas></div>';
+        html += '<div class="profile-col" id="speed-profile-wrap"><div class="profile-section-label">速度</div><canvas id="speed-canvas" class="profile-canvas"></canvas></div>';
+        html += '</div>';
+      } else if (hasE) {
+        html += '<div class="profile-wrap" id="profile-wrap"><canvas id="profile-canvas" class="profile-canvas"></canvas></div>';
+      }
+
+      // Badges
+      if (hasE) {
+        var warnings = analyzeTerrainWarnings(o.profile);
+        if (warnings.length > 0) {
+          html += '<div class="steep-badges">';
+          warnings.forEach(function(w) { html += '<div class="steep-badge ' + w.cls + '"><span>' + w.icon + '</span> ' + w.text + '</div>'; });
+          html += '</div>';
+        }
+      }
+      html += '</div>';
+      panel.innerHTML = html;
+      document.body.appendChild(panel);
+
+      requestAnimationFrame(function() {
+        var md = computeSharedMaxDist(o);
+        if (hasE) drawElevationProfile(o.profile, config.styleName, md, 90);
+        if (hasS) drawSpeedProfile(o.speedProfile, config.styleName, md, 90);
+      });
+    }
+
+    /* ═══════════════════════════════════
+       PORTRAIT poster overlay
+       ═══════════════════════════════════ */
+    function renderPortraitOverlay(config) {
+      var o = config.overlay;
+
+      // ── Top hero bar (always white text on gradient) ──
+      var topBar = document.createElement('div');
+      topBar.className = 'overlay-panel port-top';
+      var topHtml = '';
+      if (o.title) topHtml += '<div class="hero-title">' + o.title + '</div>';
+      topHtml += '<div class="hero-accent"></div>';
+      // Compact highlight line with elegant dot separators
+      var highlights = [];
+      if (o.distance) highlights.push(o.distance);
+      if (o.elevation) highlights.push('↗ ' + o.elevation);
+      if (o.duration) highlights.push(o.duration);
+      if (highlights.length > 0) {
+        topHtml += '<div class="hero-subtitle">' + highlights.join('<span class="hl-dot"></span>') + '</div>';
+      }
+      topBar.innerHTML = topHtml;
+      document.body.appendChild(topBar);
+
+      // ── Bottom data card ──
+      var isLight = ['light','outdoor','topo','bright','positron','liberty'].includes(config.styleName||'');
+      var theme = isLight ? 'theme-light' : 'theme-dark';
+      var btm = document.createElement('div');
+      btm.className = 'overlay-panel port-bottom ' + theme;
+      var html = '<div class="card">';
+
+      // Stats grid
+      html += '<div class="port-stats">';
+      var statItems = buildPortraitStats(o);
+      statItems.forEach(function(s) {
+        html += '<div class="port-stat"><div class="port-stat-value">' + s.num + ' <span class="port-stat-unit">' + s.unit + '</span></div><div class="port-stat-label">' + s.label + '</div></div>';
+      });
+      html += '</div>';
+
+      // Stacked charts (full width in portrait)
+      var hasE = o.profile && o.profile.length > 1;
+      var hasS = o.speedProfile && o.speedProfile.length > 1;
+      if (hasE) {
+        html += '<div class="port-chart-section"><div class="port-chart-label">海拔 Elevation</div>';
+        html += '<div id="profile-wrap"><canvas id="profile-canvas" class="port-chart-canvas"></canvas></div></div>';
+      }
+      if (hasS) {
+        html += '<div class="port-chart-section"><div class="port-chart-label">速度 Speed</div>';
+        html += '<div id="speed-profile-wrap"><canvas id="speed-canvas" class="port-chart-canvas"></canvas></div></div>';
+      }
+
+      // Badges
+      if (hasE) {
+        var warnings = analyzeTerrainWarnings(o.profile);
+        if (warnings.length > 0) {
+          html += '<div class="port-badges">';
+          warnings.forEach(function(w) { html += '<div class="steep-badge ' + w.cls + '"><span>' + w.icon + '</span> ' + w.text + '</div>'; });
+          html += '</div>';
+        }
+      }
+
+      html += '</div>';
+      btm.innerHTML = html;
+      document.body.appendChild(btm);
+
+      requestAnimationFrame(function() {
+        var md = computeSharedMaxDist(o);
+        var ch = 110; // taller charts for portrait
+        if (hasE) drawElevationProfile(o.profile, config.styleName, md, ch);
+        if (hasS) drawSpeedProfile(o.speedProfile, config.styleName, md, ch);
+      });
+    }
+
+    /* ═══════════════════════════════════
+       Helpers
+       ═══════════════════════════════════ */
+    function buildStatsList(o) {
+      var s = [];
+      if (o.distance) s.push({ value: o.distance, label: '距离' });
+      if (o.elevation) s.push({ value: o.elevation, label: '累计爬升' });
+      if (o.duration) s.push({ value: o.duration, label: '用时' });
+      if (o.speed) s.push({ value: o.speed, label: '均速' });
+      if (o.elevRange) s.push({ value: o.elevRange, label: '海拔范围' });
+      return s;
+    }
+
+    function buildPortraitStats(o) {
+      var s = [];
+      // Parse out number and unit for big-number display
+      if (o.distance) {
+        var m = o.distance.match(/^([\d.]+)\s*(.+)$/);
+        s.push(m ? { num: m[1], unit: m[2], label: '距离' } : { num: o.distance, unit: '', label: '距离' });
+      }
+      if (o.elevation) {
+        var m2 = o.elevation.match(/^([\d.]+)\s*(.+)$/);
+        s.push(m2 ? { num: m2[1], unit: m2[2], label: '累计爬升' } : { num: o.elevation, unit: '', label: '累计爬升' });
+      }
+      if (o.duration) s.push({ num: o.duration, unit: '', label: '用时' });
+      if (o.speed) {
+        var m3 = o.speed.match(/^([\d.]+)\s*(.+)$/);
+        s.push(m3 ? { num: m3[1], unit: m3[2], label: '均速' } : { num: o.speed, unit: '', label: '均速' });
+      }
+      if (o.elevRange) s.push({ num: o.elevRange, unit: '', label: '海拔范围' });
+      return s;
+    }
+
+    function computeSharedMaxDist(o) {
+      var md = 0;
+      if (o.profile && o.profile.length > 1) md = Math.max(md, Math.max.apply(null, o.profile.map(function(p){return p.distance;})));
+      if (o.speedProfile && o.speedProfile.length > 1) md = Math.max(md, Math.max.apply(null, o.speedProfile.map(function(p){return p.distance;})));
+      return md;
+    }
+
+    /* ═══════════════════════════════════
+       Chart drawing (shared for both layouts)
+       ═══════════════════════════════════ */
+    function drawElevationProfile(profile, styleName, sharedMaxDist, chartHeight) {
+      var canvas = document.getElementById('profile-canvas');
+      var wrap = document.getElementById('profile-wrap');
+      if (!canvas || !wrap) return;
+
+      var isLight = ['light','outdoor','topo','bright','positron','liberty'].includes(styleName||'');
+      var W = wrap.clientWidth;
+      var H = chartHeight || 90;
+      var dpr = window.devicePixelRatio || 1;
+      var padTop = 18, padBottom = 16;
+      var drawH = H - padTop - padBottom;
+
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      var ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+      var elevs = profile.map(function(p){return p.elevation;});
+      var minElev = Math.min.apply(null, elevs);
+      var maxElev = Math.max.apply(null, elevs);
+      var maxDist = sharedMaxDist || Math.max.apply(null, profile.map(function(p){return p.distance;}));
+      var elevRange = maxElev - minElev || 1;
+
+      var xOf = function(d) { return (d / maxDist) * W; };
+      var yOf = function(e) { return padTop + drawH - ((e - minElev) / elevRange) * drawH; };
+
+      // Filled area
+      for (var i = 0; i < profile.length - 1; i++) {
+        var x1=xOf(profile[i].distance), x2=xOf(profile[i+1].distance);
+        var y1=yOf(profile[i].elevation), y2=yOf(profile[i+1].elevation);
+        var grad = ctx.createLinearGradient(0, Math.min(y1,y2), 0, H);
+        grad.addColorStop(0, profile[i].color + 'AA');
+        grad.addColorStop(1, profile[i].color + '08');
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x2,H-padBottom); ctx.lineTo(x1,H-padBottom);
+        ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+      }
+      // Line
+      ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      for (var i = 0; i < profile.length - 1; i++) {
+        ctx.beginPath(); ctx.moveTo(xOf(profile[i].distance),yOf(profile[i].elevation));
+        ctx.lineTo(xOf(profile[i+1].distance),yOf(profile[i+1].elevation));
+        ctx.strokeStyle = profile[i].color; ctx.stroke();
+      }
+      // Grid
+      ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+      [0,0.5,1].forEach(function(f){ var y=padTop+drawH*(1-f); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); });
+      ctx.setLineDash([]);
+
+      // Peak
+      var peakIdx = 0;
+      for (var i=1; i<profile.length; i++) { if (profile[i].elevation > profile[peakIdx].elevation) peakIdx = i; }
+      var px=xOf(profile[peakIdx].distance), py=yOf(profile[peakIdx].elevation);
+      ctx.fillStyle = isLight ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.8)';
+      ctx.beginPath(); ctx.moveTo(px,py-8); ctx.lineTo(px-4,py-2); ctx.lineTo(px+4,py-2); ctx.closePath(); ctx.fill();
+      ctx.font = '600 10px -apple-system, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(maxElev.toFixed(0) + ' m', px, py - 11);
+
+      // Min
+      var minIdx = 0;
+      for (var i=1; i<profile.length; i++) { if (profile[i].elevation < profile[minIdx].elevation) minIdx = i; }
+      ctx.fillStyle = isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.55)';
+      ctx.textAlign = 'center';
+      ctx.fillText(minElev.toFixed(0) + ' m', Math.max(30, Math.min(W-30, xOf(profile[minIdx].distance))), yOf(profile[minIdx].elevation) + 12);
+
+      // X axis
+      ctx.fillStyle = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
+      ctx.font = '500 9px -apple-system, sans-serif';
+      ctx.textAlign = 'left'; ctx.fillText('0', 2, H-3);
+      ctx.textAlign = 'right'; ctx.fillText(maxDist.toFixed(1)+' km', W-2, H-3);
+      ctx.textAlign = 'center'; ctx.fillText((maxDist/2).toFixed(0), W/2, H-3);
+    }
+
+    function drawSpeedProfile(speedProfile, styleName, sharedMaxDist, chartHeight) {
+      var canvas = document.getElementById('speed-canvas');
+      var wrap = document.getElementById('speed-profile-wrap');
+      if (!canvas || !wrap) return;
+
+      var isLight = ['light','outdoor','topo','bright','positron','liberty'].includes(styleName||'');
+      var W = wrap.clientWidth;
+      var H = chartHeight || 90;
+      var dpr = window.devicePixelRatio || 1;
+      var padTop = 18, padBottom = 16;
+      var drawH = H - padTop - padBottom;
+
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      var ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
+
+      var speeds = speedProfile.map(function(p){return p.speed;});
+      var maxSpeed = Math.max.apply(null, speeds), minSpeed = Math.min.apply(null, speeds);
+      var maxDist = sharedMaxDist || Math.max.apply(null, speedProfile.map(function(p){return p.distance;}));
+      var speedRange = maxSpeed - minSpeed || 1;
+
+      var xOf = function(d){ return (d/maxDist)*W; };
+      var yOf = function(s){ return padTop + drawH - ((s-minSpeed)/speedRange)*drawH; };
+
+      // Filled area — use same color from track color mapping
+      for (var i=0; i<speedProfile.length-1; i++) {
+        var x1=xOf(speedProfile[i].distance), x2=xOf(speedProfile[i+1].distance);
+        var y1=yOf(speedProfile[i].speed), y2=yOf(speedProfile[i+1].speed);
+        var grad = ctx.createLinearGradient(0,Math.min(y1,y2),0,H);
+        var baseColor = speedProfile[i].color;
+        grad.addColorStop(0, baseColor + 'AA');
+        grad.addColorStop(1, baseColor + '08');
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x2,H-padBottom); ctx.lineTo(x1,H-padBottom);
+        ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+      }
+      // Line
+      ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      for (var i=0; i<speedProfile.length-1; i++) {
+        ctx.beginPath(); ctx.moveTo(xOf(speedProfile[i].distance),yOf(speedProfile[i].speed));
+        ctx.lineTo(xOf(speedProfile[i+1].distance),yOf(speedProfile[i+1].speed));
+        ctx.strokeStyle = speedProfile[i].color; ctx.stroke();
+      }
+      // Grid
+      ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+      [0,0.5,1].forEach(function(f){ var y=padTop+drawH*(1-f); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); });
+      ctx.setLineDash([]);
+
+      // Max speed marker
+      var maxIdx = 0;
+      for (var i=1; i<speedProfile.length; i++) { if (speedProfile[i].speed > speedProfile[maxIdx].speed) maxIdx = i; }
+      var msx = xOf(speedProfile[maxIdx].distance), msy = yOf(speedProfile[maxIdx].speed);
+      // Small triangle marker (same style as elevation peak)
+      ctx.fillStyle = isLight ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.8)';
+      ctx.beginPath(); ctx.moveTo(msx,msy-8); ctx.lineTo(msx-4,msy-2); ctx.lineTo(msx+4,msy-2); ctx.closePath(); ctx.fill();
+      ctx.font = '600 10px -apple-system, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(maxSpeed.toFixed(1)+' km/h', Math.max(40,Math.min(W-40,msx)), msy-11);
+
+      // Avg speed line
+      var avgSpeed = speeds.reduce(function(a,b){return a+b;},0) / speeds.length;
+      var avgY = yOf(avgSpeed);
+      ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(0,avgY); ctx.lineTo(W,avgY); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
+      ctx.font = '500 9px -apple-system, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText('avg '+avgSpeed.toFixed(1)+' km/h', W-4, avgY-4);
+
+      // X axis
+      ctx.fillStyle = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
+      ctx.font = '500 9px -apple-system, sans-serif';
+      ctx.textAlign = 'left'; ctx.fillText('0', 2, H-3);
+      ctx.textAlign = 'right'; ctx.fillText(maxDist.toFixed(1)+' km', W-2, H-3);
+      ctx.textAlign = 'center'; ctx.fillText((maxDist/2).toFixed(0), W/2, H-3);
+    }
+
+    function analyzeTerrainWarnings(profile) {
+      var warnings = [];
+      if (profile.length < 3) return warnings;
+      var steepSections = 0;
+      var windowSize = Math.max(3, Math.floor(profile.length / 20));
+      for (var i = windowSize; i < profile.length; i++) {
+        var elevDiff = profile[i].elevation - profile[i-windowSize].elevation;
+        var distDiff = (profile[i].distance - profile[i-windowSize].distance) * 1000;
+        if (distDiff > 0) {
+          var gradient = (elevDiff / distDiff) * 100;
+          if (gradient > 25 || gradient < -25) steepSections++;
+        }
+      }
+      var totalGain = 0, totalLoss = 0;
+      for (var i = 1; i < profile.length; i++) {
+        var d = profile[i].elevation - profile[i-1].elevation;
+        if (d > 0) totalGain += d; else totalLoss += Math.abs(d);
+      }
+      warnings.push({ icon: '↗', text: '累计爬升 '+totalGain.toFixed(0)+' m', cls: 'badge-climb' });
+      warnings.push({ icon: '↘', text: '累计下降 '+totalLoss.toFixed(0)+' m', cls: 'badge-descent' });
+      if (steepSections > 2) warnings.push({ icon: '⚠', text: '含陡坡路段，注意安全', cls: 'badge-steep' });
+      var elevPerKm = totalGain / (profile[profile.length-1].distance || 1);
+      if (elevPerKm > 100) warnings.push({ icon: '▲', text: elevPerKm > 150 ? '高难度爬升路线' : '中等难度路线', cls: elevPerKm > 150 ? 'badge-steep' : '' });
+      return warnings;
+    }
+  </script>
+</body>
+</html>
