@@ -355,45 +355,40 @@
       }
 
       // ── Phase-based overlay transitions ──
+      // Title and HUD stay visible throughout (like 2D poster)
+
+      // Always update HUD values
+      document.getElementById('hud-distance').textContent = kf.distanceKm.toFixed(1) + ' km';
+      document.getElementById('hud-elevation').textContent = Math.round(kf.elevationM) + ' m';
+      document.getElementById('hud-speed').textContent = kf.speedKmh.toFixed(1) + ' km/h';
 
       if (kf.phase === 'intro') {
         var introT = frameIndex / (totalFrames * 0.15);
-        // Title: fade in during first half, hold
-        var titleOpacity = Math.min(1, introT * 2);
-        document.getElementById('title-overlay').style.opacity = titleOpacity;
-        document.getElementById('stats-hud').style.opacity = 0;
+        // Title: fade in
+        document.getElementById('title-overlay').style.opacity = Math.min(1, introT * 2);
+        // HUD: fade in during second half of intro
+        document.getElementById('stats-hud').style.opacity = Math.min(1, Math.max(0, (introT - 0.5) * 4));
         document.getElementById('outro-overlay').style.opacity = 0;
 
         // Fade from black at the very start
-        var fadeOpacity = Math.max(0, 1 - introT * 3);
-        document.getElementById('fade-overlay').style.opacity = fadeOpacity;
+        document.getElementById('fade-overlay').style.opacity = Math.max(0, 1 - introT * 3);
       }
       else if (kf.phase === 'fly') {
-        // Title fades out quickly at start of fly phase
-        var flyT = (frameIndex - totalFrames * 0.15) / (totalFrames * 0.70);
-        var titleFade = Math.max(0, 1 - flyT * 8);
-        document.getElementById('title-overlay').style.opacity = titleFade;
-
-        // HUD fades in
-        var hudOpacity = Math.min(1, flyT * 5);
-        document.getElementById('stats-hud').style.opacity = hudOpacity;
+        // Title stays visible (slightly dimmed)
+        document.getElementById('title-overlay').style.opacity = 0.9;
+        // HUD stays visible
+        document.getElementById('stats-hud').style.opacity = 1;
         document.getElementById('outro-overlay').style.opacity = 0;
         document.getElementById('fade-overlay').style.opacity = 0;
-
-        // Update HUD values
-        document.getElementById('hud-distance').textContent = kf.distanceKm.toFixed(1) + ' km';
-        document.getElementById('hud-elevation').textContent = Math.round(kf.elevationM) + ' m';
-        document.getElementById('hud-speed').textContent = kf.speedKmh.toFixed(1) + ' km/h';
       }
       else if (kf.phase === 'outro') {
         var outroT = (frameIndex - totalFrames * 0.85) / (totalFrames * 0.15);
-        // HUD fades out
-        document.getElementById('stats-hud').style.opacity = Math.max(0, 1 - outroT * 4);
-        // Title stays hidden
-        document.getElementById('title-overlay').style.opacity = 0;
-        // Outro overlay fades in
-        var outroOpacity = Math.min(1, outroT * 3);
-        document.getElementById('outro-overlay').style.opacity = outroOpacity;
+        // Title stays visible
+        document.getElementById('title-overlay').style.opacity = 0.9;
+        // HUD stays visible, fades slightly at end
+        document.getElementById('stats-hud').style.opacity = Math.max(0.3, 1 - outroT * 0.7);
+        // Outro overlay fades in on top
+        document.getElementById('outro-overlay').style.opacity = Math.min(1, outroT * 3);
 
         // Show full track
         if (_allCoords.length > 0) {
@@ -411,12 +406,39 @@
         });
 
         // Fade to black at the very end
-        var fadeIn = Math.max(0, (outroT - 0.7) / 0.3);
-        document.getElementById('fade-overlay').style.opacity = fadeIn;
+        document.getElementById('fade-overlay').style.opacity = Math.max(0, (outroT - 0.7) / 0.3);
       }
 
       // Progress bar
       document.getElementById('progress-fill').style.width = (globalT * 100) + '%';
+    };
+
+    /**
+     * Wait for map to finish rendering (all tiles loaded).
+     * Returns a promise that resolves when idle or after timeout.
+     */
+    window.waitForStable = function(timeoutMs) {
+      if (!_map) return Promise.resolve();
+      timeoutMs = timeoutMs || 500;
+
+      // If already loaded, just wait one render cycle
+      if (_map.areTilesLoaded()) {
+        return new Promise(function(resolve) {
+          _map.triggerRepaint();
+          _map.once('render', function() { resolve(); });
+        });
+      }
+
+      // Otherwise wait for idle (all tiles loaded) with timeout
+      return new Promise(function(resolve) {
+        var done = false;
+        var timer = setTimeout(function() {
+          if (!done) { done = true; resolve(); }
+        }, timeoutMs);
+        _map.once('idle', function() {
+          if (!done) { done = true; clearTimeout(timer); resolve(); }
+        });
+      });
     };
   </script>
 </body>

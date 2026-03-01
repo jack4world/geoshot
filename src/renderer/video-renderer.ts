@@ -151,13 +151,12 @@ export async function renderVideo(
         totalFrames,
       );
 
-      // Small delay for map tiles to settle (first few frames need more time)
-      if (i < 5) {
-        await delay(config.terrain ? 500 : 200);
-      } else if (i % 30 === 0) {
-        // Periodically wait for tile loading
-        await delay(config.terrain ? 100 : 50);
-      }
+      // Wait for map to finish rendering (tiles loaded, terrain settled)
+      const waitTimeout = i < 3 ? 2000 : 500;
+      await page.evaluate(
+        (timeout: number) => (window as any).waitForStable(timeout),
+        waitTimeout,
+      );
 
       // Screenshot as PNG
       const buffer = await page.screenshot({
