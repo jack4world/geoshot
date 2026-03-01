@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/maplibre-contour@0.1.0/dist/index.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    #map { width: 100%; height: 100%; }
+
+    /* ── Fade overlay for intro/outro ── */
+    #fade-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #000; opacity: 0; z-index: 100; pointer-events: none;
+      transition: none;
+    }
+
+    /* ── Cinematic vignette ── */
+    .vignette {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none; z-index: 1;
+      box-shadow: inset 0 0 120px 30px rgba(0,0,0,0.2);
+    }
+
+    /* ── Title overlay (intro) ── */
+    #title-overlay {
+      position: absolute; top: 0; left: 0; right: 0;
+      z-index: 50; pointer-events: none;
+      padding: 64px 44px 100px 44px;
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.4) 45%,
+        rgba(0,0,0,0.1) 78%, transparent 100%
+      );
+      color: #fff; opacity: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    }
+    #title-overlay .hero-title {
+      font-size: 72px; font-weight: 800; letter-spacing: -2px; line-height: 1.08;
+      text-shadow: 0 3px 24px rgba(0,0,0,0.5);
+    }
+    #title-overlay .hero-accent {
+      width: 52px; height: 4px; border-radius: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.85), rgba(255,255,255,0.15));
+      margin: 18px 0 16px 0;
+    }
+    #title-overlay .hero-subtitle {
+      font-size: 24px; font-weight: 500; opacity: 0.85;
+      letter-spacing: 0.5px; line-height: 1.5;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.35);
+    }
+
+    /* ── Live stats HUD (fly phase) ── */
+    #stats-hud {
+      position: absolute; bottom: 32px; left: 24px; right: 24px;
+      z-index: 50; pointer-events: none; opacity: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    }
+    #stats-hud .hud-card {
+      background: rgba(10,10,20,0.65);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px; padding: 20px 28px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      display: flex; gap: 32px; align-items: center;
+      color: #fff;
+    }
+    .hud-stat { flex: 1; text-align: center; }
+    .hud-value {
+      font-size: 28px; font-weight: 800; line-height: 1.1;
+      letter-spacing: -0.5px;
+    }
+    .hud-label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1.2px; opacity: 0.4; margin-top: 4px;
+    }
+    .hud-divider {
+      width: 1px; height: 36px;
+      background: rgba(255,255,255,0.12);
+    }
+
+    /* ── Outro final stats ── */
+    #outro-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 50; pointer-events: none; opacity: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      color: #fff;
+    }
+    #outro-overlay .outro-card {
+      background: rgba(10,10,20,0.7);
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      border-radius: 28px; padding: 40px 48px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 12px 48px rgba(0,0,0,0.4);
+      text-align: center;
+    }
+    .outro-title {
+      font-size: 42px; font-weight: 800; letter-spacing: -1px;
+      margin-bottom: 24px;
+    }
+    .outro-stats {
+      display: flex; gap: 36px; justify-content: center;
+    }
+    .outro-stat-value {
+      font-size: 32px; font-weight: 800; letter-spacing: -0.5px;
+    }
+    .outro-stat-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1px; opacity: 0.45; margin-top: 4px;
+    }
+
+    /* Progress bar */
+    #progress-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 3px; z-index: 60; pointer-events: none;
+    }
+    #progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+      transition: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="vignette"></div>
+  <div id="fade-overlay"></div>
+
+  <div id="title-overlay">
+    <div class="hero-title" id="hero-title"></div>
+    <div class="hero-accent"></div>
+    <div class="hero-subtitle" id="hero-subtitle"></div>
+  </div>
+
+  <div id="stats-hud">
+    <div class="hud-card">
+      <div class="hud-stat">
+        <div class="hud-value" id="hud-distance">0.0 km</div>
+        <div class="hud-label">距离</div>
+      </div>
+      <div class="hud-divider"></div>
+      <div class="hud-stat">
+        <div class="hud-value" id="hud-elevation">0 m</div>
+        <div class="hud-label">海拔</div>
+      </div>
+      <div class="hud-divider"></div>
+      <div class="hud-stat">
+        <div class="hud-value" id="hud-speed">0.0 km/h</div>
+        <div class="hud-label">速度</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="outro-overlay">
+    <div class="outro-card">
+      <div class="outro-title" id="outro-title"></div>
+      <div class="outro-stats" id="outro-stats"></div>
+    </div>
+  </div>
+
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+
+  <script>
+    var _map, _allCoords, _trackColors, _config;
+
+    /**
+     * Initialize the video map. Called once from Node.js.
+     * config: same as MapRenderConfig + videoExtras
+     */
+    window.initVideoMap = function(config) {
+      return new Promise(function(resolve, reject) {
+        _config = config;
+        _allCoords = config.allCoordinates || [];
+        _trackColors = config.trackColors || [];
+
+        var map = new maplibregl.Map({
+          container: 'map',
+          style: config.style,
+          center: config.center,
+          zoom: config.zoom,
+          pitch: config.pitch || 0,
+          bearing: config.bearing || 0,
+          attributionControl: false,
+          preserveDrawingBuffer: true,
+          fadeDuration: 0,
+          interactive: false,
+        });
+
+        map.on('error', function(e) { console.error('Map error:', e.error); });
+
+        map.on('load', function() {
+          // Contour lines
+          if (config.contours && typeof mlcontour !== 'undefined') {
+            var demSource = new mlcontour.DemSource({
+              url: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+              encoding: 'terrarium', maxzoom: 13,
+            });
+            demSource.setupMaplibre(maplibregl);
+            map.addSource('contour-dem', {
+              type: 'raster-dem', tiles: [demSource.sharedDemProtocolUrl],
+              tileSize: 514, maxzoom: 13,
+            });
+            map.addSource('contour-source', {
+              type: 'vector',
+              tiles: [demSource.contourProtocolUrl({
+                thresholds: { 11:[100,500], 12:[50,200], 13:[20,100], 14:[10,50], 15:[10,50] },
+                elevationKey: 'ele', levelKey: 'level', contourLayer: 'contours',
+              })],
+              maxzoom: 16,
+            });
+            var layers = map.getStyle().layers;
+            var beforeLayer;
+            for (var l of layers) { if (l.type === 'symbol') { beforeLayer = l.id; break; } }
+            map.addLayer({
+              id: 'contour-lines', type: 'line', source: 'contour-source', 'source-layer': 'contours',
+              paint: { 'line-color': config.contourColor || 'rgba(100,100,100,0.4)', 'line-width': ['match',['get','level'],1,1,0.35], 'line-opacity': 0.5 },
+            }, beforeLayer);
+            map.addLayer({
+              id: 'contour-labels', type: 'symbol', source: 'contour-source', 'source-layer': 'contours',
+              filter: ['==',['get','level'],1],
+              layout: { 'symbol-placement':'line', 'text-field':['concat',['number-format',['get','ele'],{}],' m'], 'text-font':['Noto Sans Regular'], 'text-size':9, 'text-max-angle':25, 'text-padding':20 },
+              paint: { 'text-color': config.contourLabelColor||'rgba(80,80,80,0.65)', 'text-halo-color': config.contourHaloColor||'rgba(255,255,255,0.6)', 'text-halo-width':1.5 },
+            });
+          }
+
+          // 3D Terrain — always use a dedicated source (mlcontour protocol is incompatible)
+          if (config.terrain) {
+            map.addSource('terrain-dem', {
+              type: 'raster-dem',
+              tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+              encoding: 'terrarium',
+              tileSize: 256,
+              maxzoom: 13,
+            });
+            map.setTerrain({ source: 'terrain-dem', exaggeration: 1.5 });
+          }
+
+          // Track source — initially empty, will be updated per frame
+          map.addSource('track', {
+            type: 'geojson',
+            data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] }, properties: {} },
+            lineMetrics: false,
+          });
+
+          // Track casing
+          var trackWidth = config.trackLayer && config.trackLayer.paint ? (config.trackLayer.paint['line-width'] || 5) : 5;
+          map.addLayer({
+            id: 'track-casing', type: 'line', source: 'track',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-width': trackWidth + 5, 'line-color': 'rgba(0,0,0,0.45)', 'line-opacity': 0.7 },
+          });
+
+          // Track main — use solid color segments (gradient computed per-frame)
+          map.addLayer({
+            id: 'track', type: 'line', source: 'track',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: { 'line-width': trackWidth, 'line-color': config.trackBaseColor || '#3b82f6', 'line-opacity': 0.9 },
+          });
+
+          // Current position dot
+          map.addSource('current-pos', {
+            type: 'geojson',
+            data: { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: {} },
+          });
+          map.addLayer({
+            id: 'current-pos-glow', type: 'circle', source: 'current-pos',
+            paint: {
+              'circle-radius': 12, 'circle-color': '#3b82f6',
+              'circle-opacity': 0.3, 'circle-blur': 0.8,
+            },
+          });
+          map.addLayer({
+            id: 'current-pos-dot', type: 'circle', source: 'current-pos',
+            paint: {
+              'circle-radius': 6, 'circle-color': '#fff',
+              'circle-stroke-color': '#3b82f6', 'circle-stroke-width': 3,
+            },
+          });
+
+          // Set title
+          if (config.overlay && config.overlay.title) {
+            document.getElementById('hero-title').textContent = config.overlay.title;
+            var subtitleParts = [];
+            if (config.overlay.distance) subtitleParts.push(config.overlay.distance);
+            if (config.overlay.elevation) subtitleParts.push('↗ ' + config.overlay.elevation);
+            if (config.overlay.duration) subtitleParts.push(config.overlay.duration);
+            document.getElementById('hero-subtitle').textContent = subtitleParts.join('  ·  ');
+
+            // Outro title and stats
+            document.getElementById('outro-title').textContent = config.overlay.title;
+            var outroHtml = '';
+            if (config.overlay.distance) outroHtml += '<div class="hud-stat"><div class="outro-stat-value">' + config.overlay.distance + '</div><div class="outro-stat-label">距离</div></div>';
+            if (config.overlay.elevation) outroHtml += '<div class="hud-stat"><div class="outro-stat-value">' + config.overlay.elevation + '</div><div class="outro-stat-label">累计爬升</div></div>';
+            if (config.overlay.duration) outroHtml += '<div class="hud-stat"><div class="outro-stat-value">' + config.overlay.duration + '</div><div class="outro-stat-label">用时</div></div>';
+            document.getElementById('outro-stats').innerHTML = outroHtml;
+          }
+
+          _map = map;
+
+          // Fit bounds initially to ensure tiles load
+          map.fitBounds(
+            [[config.bounds[0], config.bounds[1]], [config.bounds[2], config.bounds[3]]],
+            { padding: 60, duration: 0, maxZoom: 18 }
+          );
+
+          map.once('idle', function() {
+            // Terrain DEM tiles need extra time to fully load and render
+            var waitMs = config.terrain ? 3000 : 600;
+            setTimeout(function() { resolve(); }, waitMs);
+          });
+        });
+      });
+    };
+
+    /**
+     * Advance one frame. Called from Node.js for each frame.
+     * kf: CameraKeyframe object
+     * frameIndex: current frame number
+     * totalFrames: total frame count
+     */
+    window.advanceFrame = function(kf, frameIndex, totalFrames) {
+      if (!_map) return;
+
+      var globalT = frameIndex / Math.max(1, totalFrames - 1);
+
+      // Update camera
+      _map.jumpTo({
+        center: kf.center,
+        zoom: kf.zoom,
+        bearing: kf.bearing,
+        pitch: kf.pitch,
+      });
+
+      // Update track (progressive reveal)
+      if (_allCoords.length > 0 && kf.progress > 0) {
+        var idx = Math.floor(kf.progress * (_allCoords.length - 1));
+        idx = Math.max(1, Math.min(idx, _allCoords.length));
+        var partial = _allCoords.slice(0, idx + 1);
+        _map.getSource('track').setData({
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: partial },
+          properties: {},
+        });
+
+        // Update current position dot
+        var lastCoord = partial[partial.length - 1];
+        _map.getSource('current-pos').setData({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: lastCoord },
+          properties: {},
+        });
+      }
+
+      // ── Phase-based overlay transitions ──
+
+      if (kf.phase === 'intro') {
+        var introT = frameIndex / (totalFrames * 0.15);
+        // Title: fade in during first half, hold
+        var titleOpacity = Math.min(1, introT * 2);
+        document.getElementById('title-overlay').style.opacity = titleOpacity;
+        document.getElementById('stats-hud').style.opacity = 0;
+        document.getElementById('outro-overlay').style.opacity = 0;
+
+        // Fade from black at the very start
+        var fadeOpacity = Math.max(0, 1 - introT * 3);
+        document.getElementById('fade-overlay').style.opacity = fadeOpacity;
+      }
+      else if (kf.phase === 'fly') {
+        // Title fades out quickly at start of fly phase
+        var flyT = (frameIndex - totalFrames * 0.15) / (totalFrames * 0.70);
+        var titleFade = Math.max(0, 1 - flyT * 8);
+        document.getElementById('title-overlay').style.opacity = titleFade;
+
+        // HUD fades in
+        var hudOpacity = Math.min(1, flyT * 5);
+        document.getElementById('stats-hud').style.opacity = hudOpacity;
+        document.getElementById('outro-overlay').style.opacity = 0;
+        document.getElementById('fade-overlay').style.opacity = 0;
+
+        // Update HUD values
+        document.getElementById('hud-distance').textContent = kf.distanceKm.toFixed(1) + ' km';
+        document.getElementById('hud-elevation').textContent = Math.round(kf.elevationM) + ' m';
+        document.getElementById('hud-speed').textContent = kf.speedKmh.toFixed(1) + ' km/h';
+      }
+      else if (kf.phase === 'outro') {
+        var outroT = (frameIndex - totalFrames * 0.85) / (totalFrames * 0.15);
+        // HUD fades out
+        document.getElementById('stats-hud').style.opacity = Math.max(0, 1 - outroT * 4);
+        // Title stays hidden
+        document.getElementById('title-overlay').style.opacity = 0;
+        // Outro overlay fades in
+        var outroOpacity = Math.min(1, outroT * 3);
+        document.getElementById('outro-overlay').style.opacity = outroOpacity;
+
+        // Show full track
+        if (_allCoords.length > 0) {
+          _map.getSource('track').setData({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: _allCoords },
+            properties: {},
+          });
+        }
+        // Hide current position dot during outro
+        _map.getSource('current-pos').setData({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {},
+        });
+
+        // Fade to black at the very end
+        var fadeIn = Math.max(0, (outroT - 0.7) / 0.3);
+        document.getElementById('fade-overlay').style.opacity = fadeIn;
+      }
+
+      // Progress bar
+      document.getElementById('progress-fill').style.width = (globalT * 100) + '%';
+    };
+  </script>
+</body>
+</html>

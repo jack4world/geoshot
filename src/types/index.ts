@@ -97,6 +97,26 @@ export interface OverlayData {
   speedProfile?: SpeedProfilePoint[];
 }
 
+export interface VideoOptions {
+  duration: number; // seconds
+  fps: number; // frame rate
+  music: "builtin" | "none";
+  musicFile?: string; // custom music file path
+}
+
+export interface CameraKeyframe {
+  center: [number, number]; // [lng, lat]
+  zoom: number;
+  bearing: number;
+  pitch: number;
+  progress: number; // track progress 0~1
+  phase: "intro" | "fly" | "outro";
+  // overlay stats at this keyframe
+  distanceKm: number;
+  elevationM: number;
+  speedKmh: number;
+}
+
 export interface InfoOptions {
   input: string;
   outputFormat: OutputFormat;

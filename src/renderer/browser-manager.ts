@@ -11,12 +11,10 @@ export async function getBrowser(): Promise<Browser> {
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--hide-scrollbars",
-        // Enable WebGL for MapLibre GL
+        // Enable WebGL for MapLibre GL (use real GPU for 3D terrain support)
         "--enable-webgl",
         "--enable-webgl2",
         "--use-gl=angle",
-        "--use-angle=swiftshader",
-        "--enable-unsafe-swiftshader",
       ],
     });
   }

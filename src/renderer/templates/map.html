@@ -124,34 +124,34 @@
     /* Top hero bar — cinematic gradient overlay */
     .port-top {
       top: 0; left: 0; right: 0;
-      padding: 56px 40px 80px 40px;
+      padding: 64px 44px 100px 44px;
       background: linear-gradient(
         180deg,
-        rgba(0,0,0,0.62) 0%,
-        rgba(0,0,0,0.35) 40%,
-        rgba(0,0,0,0.1) 75%,
+        rgba(0,0,0,0.65) 0%,
+        rgba(0,0,0,0.4) 45%,
+        rgba(0,0,0,0.1) 78%,
         transparent 100%
       );
       color: #fff !important;
     }
     .port-top .hero-title {
-      font-size: 48px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.12;
-      text-shadow: 0 2px 20px rgba(0,0,0,0.5), 0 0 60px rgba(0,0,0,0.15);
+      font-size: 72px; font-weight: 800; letter-spacing: -2px; line-height: 1.08;
+      text-shadow: 0 3px 24px rgba(0,0,0,0.5), 0 0 80px rgba(0,0,0,0.15);
     }
     .port-top .hero-accent {
-      width: 40px; height: 3px; border-radius: 2px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
-      margin: 14px 0 12px 0;
+      width: 52px; height: 4px; border-radius: 2px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.85), rgba(255,255,255,0.15));
+      margin: 18px 0 16px 0;
     }
     .port-top .hero-subtitle {
-      font-size: 16px; font-weight: 500; opacity: 0.8;
+      font-size: 24px; font-weight: 500; opacity: 0.85;
       letter-spacing: 0.5px; line-height: 1.5;
-      text-shadow: 0 1px 8px rgba(0,0,0,0.3);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.35);
     }
     .port-top .hero-subtitle .hl-dot {
-      display: inline-block; width: 3px; height: 3px; border-radius: 50%;
+      display: inline-block; width: 4px; height: 4px; border-radius: 50%;
       background: rgba(255,255,255,0.5); vertical-align: middle;
-      margin: 0 10px;
+      margin: 0 12px;
     }
 
     /* Bottom data card — enhanced glass */
@@ -308,7 +308,7 @@
 
           if (isPortrait && config.overlay) {
             // Portrait: top hero ~160px, bottom card ~55% of height
-            topPad = 180;
+            topPad = 240;
             // bottom card: stats(~100) + chart1(~130) + chart2(~130) + badges(~50) + padding(~60)
             var cardH = 160; // stats + margins
             if (hasElev) cardH += 150;

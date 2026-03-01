@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from "commander";
-import { addCommonOptions, addImageOptions } from "../src/cli/options.js";
+import { addCommonOptions, addImageOptions, addVideoOptions } from "../src/cli/options.js";
 import { runInfo } from "../src/cli/commands/info.js";
 import { runImage } from "../src/cli/commands/image.js";
+import { runVideo } from "../src/cli/commands/video.js";
 
 const program = new Command();
 
@@ -30,5 +31,15 @@ imageCmd.action(async (opts) => {
   await runImage(opts);
 });
 program.addCommand(imageCmd);
+
+// video command
+const videoCmd = new Command("video")
+  .description("Render a track flythrough video");
+addCommonOptions(videoCmd);
+addVideoOptions(videoCmd);
+videoCmd.action(async (opts) => {
+  await runVideo(opts);
+});
+program.addCommand(videoCmd);
 
 program.parse();
