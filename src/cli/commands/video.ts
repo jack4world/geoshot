@@ -15,6 +15,7 @@ import type {
   CLIOutput,
   ColorByMetric,
   ColorRamp,
+  ElevationProfilePoint,
   MapStyle,
   OutputFormat,
   OverlayData,
@@ -129,6 +130,29 @@ export async function runVideo(opts: {
         overlay.speed = `${s.speedAvg.toFixed(1)} km/h`;
       }
       overlay.elevRange = `${s.elevationMin.toFixed(0)}–${s.elevationMax.toFixed(0)} m`;
+
+      // Build elevation profile (downsample to ~200 points) for the elevation tracker
+      const profileStep = Math.max(1, Math.floor(analyzed.points.length / 200));
+      const profile: ElevationProfilePoint[] = [];
+      for (let i = 0; i < analyzed.points.length; i += profileStep) {
+        const pt = analyzed.points[i];
+        if (pt.ele !== undefined) {
+          profile.push({
+            distance: pt.distanceFromStart / 1000,
+            elevation: pt.ele,
+            color: colorMapping.colors[i] ?? "#3b82f6",
+          });
+        }
+      }
+      const lastPt = analyzed.points[analyzed.points.length - 1];
+      if (lastPt.ele !== undefined) {
+        profile.push({
+          distance: lastPt.distanceFromStart / 1000,
+          elevation: lastPt.ele,
+          color: colorMapping.colors[colorMapping.colors.length - 1] ?? "#3b82f6",
+        });
+      }
+      if (profile.length > 0) overlay.profile = profile;
     }
 
     const mapConfig = buildMapConfig(styleConfig, camera, cameraPreset, trackLayer, {

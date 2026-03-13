@@ -9,7 +9,7 @@ export const imageOptionsSchema = z.object({
   dpi: z.number().int().min(1).max(4).default(2),
   colorBy: z.enum(["elevation", "speed", "gradient", "distance", "none"]).default("elevation"),
   colorRamp: z.enum(["turbo", "viridis", "plasma", "inferno", "rdylgn"]).default("turbo"),
-  style: z.enum(["outdoor", "dark", "light", "topo", "satellite", "liberty", "bright", "positron"]).default("topo"),
+  style: z.enum(["outdoor", "dark", "light", "topo", "terrain", "satellite", "liberty", "bright", "positron"]).default("topo"),
   perspective: z.enum(["auto", "overhead", "north-up"]).default("auto"),
   trackWidth: z.number().min(1).max(20).default(5),
   markers: z.boolean().default(true),

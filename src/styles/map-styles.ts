@@ -55,6 +55,12 @@ const RASTER_STYLES: Record<string, TileStyle> = {
     type: "raster",
     attribution: "&copy; OpenStreetMap contributors, SRTM &copy; OpenTopoMap",
   },
+  terrain: {
+    name: "ESRI World Shaded Relief",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}",
+    type: "raster",
+    attribution: "Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA",
+  },
 };
 
 export function getMapStyleConfig(
@@ -65,7 +71,7 @@ export function getMapStyleConfig(
   if (style === "satellite") {
     if (!mapboxToken) {
       throw new Error(
-        "Satellite style requires --mapbox-token. Free alternatives: liberty, bright, positron, terrain, topo"
+        "Satellite style requires --mapbox-token. Free alternatives: topo, terrain, liberty, bright, positron, outdoor, dark, light"
       );
     }
     return {
@@ -83,7 +89,7 @@ export function getMapStyleConfig(
   // Raster tile styles
   const tile = RASTER_STYLES[style];
   if (!tile) {
-    throw new Error(`Unknown map style: ${style}. Available: liberty, bright, positron, outdoor, dark, light, topo, terrain, satellite`);
+    throw new Error(`Unknown map style: ${style}. Available: topo, terrain, liberty, bright, positron, outdoor, dark, light, satellite`);
   }
 
   return {
