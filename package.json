@@ -8,7 +8,7 @@
   },
   "main": "./dist/src/index.js",
   "scripts": {
-    "build": "tsup && cp -r src/renderer/templates dist/src/renderer/",
+    "build": "tsup && cp -r src/renderer/templates dist/src/renderer/ && cp -r src/assets dist/src/",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.20.1/dist/maplibre-gl.css">
-  <script src="https://unpkg.com/maplibre-gl@5.20.1/dist/maplibre-gl.js"></script>
-  <script src="https://unpkg.com/maplibre-contour@0.1.0/dist/index.min.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -63,9 +62,7 @@
     /* ═══════════════════════════════════════
        LANDSCAPE layout (bottom strip)
        ═══════════════════════════════════════ */
-    .land-bottom {
-      bottom: 0; left: 0; right: 0;
-    }
+    .land-bottom { bottom: 0; left: 0; right: 0; }
     .land-bottom .card {
       margin: 0 24px 20px 24px;
       border-radius: 16px; overflow: hidden;
@@ -82,17 +79,11 @@
       border: 1px solid rgba(255,255,255,0.5);
       box-shadow: 0 8px 32px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
     }
-
-    /* Landscape title */
     .land-bottom .panel-header { padding: 18px 24px 0 24px; }
     .land-bottom .panel-title  { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-
-    /* Landscape stats */
     .land-bottom .panel-stats { display: flex; gap: 28px; padding: 12px 24px 0 24px; }
     .land-bottom .stat-value { font-size: 20px; font-weight: 800; line-height: 1.2; letter-spacing: -0.3px; }
     .land-bottom .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.4; margin-top: 2px; }
-
-    /* Landscape charts side-by-side */
     .profiles-row { display: flex; gap: 0; padding: 8px 24px 10px 24px; }
     .profile-col { flex: 1; min-width: 0; position: relative; }
     .profile-col + .profile-col { margin-left: 16px; }
@@ -101,12 +92,8 @@
       letter-spacing: 0.8px; opacity: 0.45; margin-bottom: 2px;
     }
     .profile-canvas { display: block; width: 100%; }
-
-    /* Single chart wrappers */
     .profile-wrap { padding: 8px 24px 14px 24px; position: relative; }
     .speed-profile-wrap { padding: 4px 24px 10px 24px; position: relative; }
-
-    /* Badges */
     .steep-badges { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 24px 12px 24px; }
     .steep-badge {
       font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px;
@@ -120,17 +107,12 @@
     /* ═══════════════════════════════════════
        PORTRAIT poster layout
        ═══════════════════════════════════════ */
-
-    /* Top hero bar — cinematic gradient overlay */
     .port-top {
       top: 0; left: 0; right: 0;
       padding: 64px 44px 100px 44px;
-      background: linear-gradient(
-        180deg,
-        rgba(0,0,0,0.65) 0%,
-        rgba(0,0,0,0.4) 45%,
-        rgba(0,0,0,0.1) 78%,
-        transparent 100%
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.4) 45%,
+        rgba(0,0,0,0.1) 78%, transparent 100%
       );
       color: #fff !important;
     }
@@ -153,52 +135,34 @@
       background: rgba(255,255,255,0.5); vertical-align: middle;
       margin: 0 12px;
     }
-
-    /* Bottom data card — enhanced glass */
-    .port-bottom {
-      bottom: 0; left: 0; right: 0;
-    }
+    .port-bottom { bottom: 0; left: 0; right: 0; }
     .port-bottom .card {
       margin: 0 20px 28px 20px;
       border-radius: 24px; overflow: hidden;
       padding: 32px 32px 24px 32px;
     }
-
-    /* Portrait stats — grid layout with big numbers */
     .port-stats {
       display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 20px 12px; margin-bottom: 24px;
-      padding-bottom: 20px;
+      gap: 20px 12px; margin-bottom: 24px; padding-bottom: 20px;
     }
     .theme-light .port-stats { border-bottom: 1px solid rgba(0,0,0,0.06); }
     .theme-dark  .port-stats { border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .port-stat {}
     .port-stat-value { font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -0.8px; }
     .port-stat-unit  { font-size: 13px; font-weight: 500; opacity: 0.45; margin-left: 2px; }
     .port-stat-label {
       font-size: 10px; font-weight: 600; text-transform: uppercase;
       letter-spacing: 1.2px; opacity: 0.35; margin-top: 3px;
     }
-
-    /* Portrait charts — stacked full-width */
     .port-chart-section { margin-bottom: 16px; }
     .port-chart-label {
       font-size: 10px; font-weight: 600; text-transform: uppercase;
       letter-spacing: 1.2px; opacity: 0.35; margin-bottom: 6px;
     }
     .port-chart-canvas { display: block; width: 100%; }
-
-    /* Portrait badges — refined glass pills */
     .port-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
-    .port-badges .steep-badge {
-      font-size: 12px; padding: 6px 14px; border-radius: 10px;
-    }
-    .theme-light .port-badges .steep-badge {
-      background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06);
-    }
-    .theme-dark .port-badges .steep-badge {
-      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.06);
-    }
+    .port-badges .steep-badge { font-size: 12px; padding: 6px 14px; border-radius: 10px; }
+    .theme-light .port-badges .steep-badge { background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.06); }
+    .theme-dark .port-badges .steep-badge { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.06); }
   </style>
 </head>
 <body>
@@ -209,13 +173,15 @@
         var isPortrait = window.innerHeight > window.innerWidth * 1.2;
         if (isPortrait) document.body.classList.add('portrait');
 
-        // Add cinematic vignette for portrait
         if (isPortrait) {
           var vig = document.createElement('div'); vig.className = 'vignette';
           document.body.appendChild(vig);
         }
 
-        const map = new maplibregl.Map({
+        // Set Mapbox access token
+        mapboxgl.accessToken = config.mapboxToken || '';
+
+        const map = new mapboxgl.Map({
           container: 'map',
           style: config.style,
           center: config.center,
@@ -231,40 +197,6 @@
         map.on('error', (e) => { console.error('Map error:', e.error); });
 
         map.on('load', () => {
-          // ── Contour lines ──
-          if (config.contours && typeof mlcontour !== 'undefined') {
-            const demSource = new mlcontour.DemSource({
-              url: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
-              encoding: 'terrarium', maxzoom: 13,
-            });
-            demSource.setupMaplibre(maplibregl);
-            map.addSource('contour-dem', {
-              type: 'raster-dem', tiles: [demSource.sharedDemProtocolUrl],
-              tileSize: 514, maxzoom: 13,
-            });
-            map.addSource('contour-source', {
-              type: 'vector',
-              tiles: [demSource.contourProtocolUrl({
-                thresholds: { 11:[100,500], 12:[50,200], 13:[20,100], 14:[10,50], 15:[10,50] },
-                elevationKey: 'ele', levelKey: 'level', contourLayer: 'contours',
-              })],
-              maxzoom: 16,
-            });
-            const layers = map.getStyle().layers;
-            let beforeLayer;
-            for (const l of layers) { if (l.type === 'symbol') { beforeLayer = l.id; break; } }
-            map.addLayer({
-              id: 'contour-lines', type: 'line', source: 'contour-source', 'source-layer': 'contours',
-              paint: { 'line-color': config.contourColor || 'rgba(100,100,100,0.4)', 'line-width': ['match',['get','level'],1,1,0.35], 'line-opacity': 0.5 },
-            }, beforeLayer);
-            map.addLayer({
-              id: 'contour-labels', type: 'symbol', source: 'contour-source', 'source-layer': 'contours',
-              filter: ['==',['get','level'],1],
-              layout: { 'symbol-placement':'line', 'text-field':['concat',['number-format',['get','ele'],{}],' m'], 'text-font':['Noto Sans Regular'], 'text-size':9, 'text-max-angle':25, 'text-padding':20 },
-              paint: { 'text-color': config.contourLabelColor||'rgba(80,80,80,0.65)', 'text-halo-color': config.contourHaloColor||'rgba(255,255,255,0.6)', 'text-halo-width':1.5 },
-            });
-          }
-
           // ── Track casing + main layer ──
           map.addSource('track', config.trackSource);
           var trackPaint = config.trackLayer.paint || {};
@@ -286,17 +218,17 @@
               var label = document.createElement('div'); label.className = 'wp-label';
               label.textContent = wp.label + (wp.sublabel ? ' ' + wp.sublabel : '');
               el.appendChild(label);
-              new maplibregl.Marker({ element: el, anchor: 'left', offset: [8, 0] })
+              new mapboxgl.Marker({ element: el, anchor: 'left', offset: [8, 0] })
                 .setLngLat([wp.lon, wp.lat]).addTo(map);
             });
           } else if (config.markers) {
             var s = document.createElement('div'); s.className = 'wp wp-start';
             s.innerHTML = '<div class="wp-dot"></div><div class="wp-label">起点</div>';
-            new maplibregl.Marker({ element: s, anchor:'left', offset:[8,0] })
+            new mapboxgl.Marker({ element: s, anchor:'left', offset:[8,0] })
               .setLngLat([config.markers.start.lon, config.markers.start.lat]).addTo(map);
             var e = document.createElement('div'); e.className = 'wp wp-end';
             e.innerHTML = '<div class="wp-dot"></div><div class="wp-label">终点</div>';
-            new maplibregl.Marker({ element: e, anchor:'left', offset:[8,0] })
+            new mapboxgl.Marker({ element: e, anchor:'left', offset:[8,0] })
               .setLngLat([config.markers.end.lon, config.markers.end.lat]).addTo(map);
           }
 
@@ -307,13 +239,11 @@
           var topPad, bottomPad, sidePad;
 
           if (isPortrait && config.overlay) {
-            // Portrait: top hero ~160px, bottom card ~55% of height
             topPad = 240;
-            // bottom card: stats(~100) + chart1(~130) + chart2(~130) + badges(~50) + padding(~60)
-            var cardH = 160; // stats + margins
+            var cardH = 160;
             if (hasElev) cardH += 150;
             if (hasSpeed) cardH += 150;
-            cardH += 60; // badges + padding
+            cardH += 60;
             bottomPad = cardH + 24;
             sidePad = 40;
           } else {
@@ -345,30 +275,24 @@
     }
 
     /* ═══════════════════════════════════
-       LANDSCAPE overlay (existing logic)
+       LANDSCAPE overlay
        ═══════════════════════════════════ */
     function renderLandscapeOverlay(config) {
       var o = config.overlay;
-      var isLight = ['light','outdoor','topo','bright','positron','liberty'].includes(config.styleName||'');
+      var isLight = ['mapbox-light','mapbox-outdoor'].includes(config.styleName||'');
       var theme = isLight ? 'theme-light' : 'theme-dark';
       var panel = document.createElement('div');
       panel.className = 'overlay-panel land-bottom ' + theme;
       var html = '<div class="card">';
-
-      // Title
       html += '<div class="panel-header">';
       if (o.title) html += '<div class="panel-title">' + o.title + '</div>';
       html += '</div>';
-
-      // Stats
       html += '<div class="panel-stats">';
       var stats = buildStatsList(o);
       stats.forEach(function(s) {
         html += '<div class="stat"><div class="stat-value">' + s.value + '</div><div class="stat-label">' + s.label + '</div></div>';
       });
       html += '</div>';
-
-      // Charts
       var hasE = o.profile && o.profile.length > 1;
       var hasS = o.speedProfile && o.speedProfile.length > 1;
       if (hasE && hasS) {
@@ -379,8 +303,6 @@
       } else if (hasE) {
         html += '<div class="profile-wrap" id="profile-wrap"><canvas id="profile-canvas" class="profile-canvas"></canvas></div>';
       }
-
-      // Badges
       if (hasE) {
         var warnings = analyzeTerrainWarnings(o.profile);
         if (warnings.length > 0) {
@@ -392,7 +314,6 @@
       html += '</div>';
       panel.innerHTML = html;
       document.body.appendChild(panel);
-
       requestAnimationFrame(function() {
         var md = computeSharedMaxDist(o);
         if (hasE) drawElevationProfile(o.profile, config.styleName, md, 90);
@@ -405,14 +326,11 @@
        ═══════════════════════════════════ */
     function renderPortraitOverlay(config) {
       var o = config.overlay;
-
-      // ── Top hero bar (always white text on gradient) ──
       var topBar = document.createElement('div');
       topBar.className = 'overlay-panel port-top';
       var topHtml = '';
       if (o.title) topHtml += '<div class="hero-title">' + o.title + '</div>';
       topHtml += '<div class="hero-accent"></div>';
-      // Compact highlight line with elegant dot separators
       var highlights = [];
       if (o.distance) highlights.push(o.distance);
       if (o.elevation) highlights.push('↗ ' + o.elevation);
@@ -423,22 +341,17 @@
       topBar.innerHTML = topHtml;
       document.body.appendChild(topBar);
 
-      // ── Bottom data card ──
-      var isLight = ['light','outdoor','topo','bright','positron','liberty'].includes(config.styleName||'');
+      var isLight = ['mapbox-light','mapbox-outdoor'].includes(config.styleName||'');
       var theme = isLight ? 'theme-light' : 'theme-dark';
       var btm = document.createElement('div');
       btm.className = 'overlay-panel port-bottom ' + theme;
       var html = '<div class="card">';
-
-      // Stats grid
       html += '<div class="port-stats">';
       var statItems = buildPortraitStats(o);
       statItems.forEach(function(s) {
         html += '<div class="port-stat"><div class="port-stat-value">' + s.num + ' <span class="port-stat-unit">' + s.unit + '</span></div><div class="port-stat-label">' + s.label + '</div></div>';
       });
       html += '</div>';
-
-      // Stacked charts (full width in portrait)
       var hasE = o.profile && o.profile.length > 1;
       var hasS = o.speedProfile && o.speedProfile.length > 1;
       if (hasE) {
@@ -449,8 +362,6 @@
         html += '<div class="port-chart-section"><div class="port-chart-label">速度 Speed</div>';
         html += '<div id="speed-profile-wrap"><canvas id="speed-canvas" class="port-chart-canvas"></canvas></div></div>';
       }
-
-      // Badges
       if (hasE) {
         var warnings = analyzeTerrainWarnings(o.profile);
         if (warnings.length > 0) {
@@ -459,14 +370,12 @@
           html += '</div>';
         }
       }
-
       html += '</div>';
       btm.innerHTML = html;
       document.body.appendChild(btm);
-
       requestAnimationFrame(function() {
         var md = computeSharedMaxDist(o);
-        var ch = 110; // taller charts for portrait
+        var ch = 110;
         if (hasE) drawElevationProfile(o.profile, config.styleName, md, ch);
         if (hasS) drawSpeedProfile(o.speedProfile, config.styleName, md, ch);
       });
@@ -487,7 +396,6 @@
 
     function buildPortraitStats(o) {
       var s = [];
-      // Parse out number and unit for big-number display
       if (o.distance) {
         var m = o.distance.match(/^([\d.]+)\s*(.+)$/);
         s.push(m ? { num: m[1], unit: m[2], label: '距离' } : { num: o.distance, unit: '', label: '距离' });
@@ -513,34 +421,25 @@
     }
 
     /* ═══════════════════════════════════
-       Chart drawing (shared for both layouts)
+       Chart drawing
        ═══════════════════════════════════ */
     function drawElevationProfile(profile, styleName, sharedMaxDist, chartHeight) {
       var canvas = document.getElementById('profile-canvas');
       var wrap = document.getElementById('profile-wrap');
       if (!canvas || !wrap) return;
-
-      var isLight = ['light','outdoor','topo','bright','positron','liberty'].includes(styleName||'');
-      var W = wrap.clientWidth;
-      var H = chartHeight || 90;
+      var isLight = ['mapbox-light','mapbox-outdoor'].includes(styleName||'');
+      var W = wrap.clientWidth, H = chartHeight || 90;
       var dpr = window.devicePixelRatio || 1;
-      var padTop = 18, padBottom = 16;
-      var drawH = H - padTop - padBottom;
-
+      var padTop = 18, padBottom = 16, drawH = H - padTop - padBottom;
       canvas.width = W * dpr; canvas.height = H * dpr;
       canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
       var ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
-
       var elevs = profile.map(function(p){return p.elevation;});
-      var minElev = Math.min.apply(null, elevs);
-      var maxElev = Math.max.apply(null, elevs);
+      var minElev = Math.min.apply(null, elevs), maxElev = Math.max.apply(null, elevs);
       var maxDist = sharedMaxDist || Math.max.apply(null, profile.map(function(p){return p.distance;}));
       var elevRange = maxElev - minElev || 1;
-
       var xOf = function(d) { return (d / maxDist) * W; };
       var yOf = function(e) { return padTop + drawH - ((e - minElev) / elevRange) * drawH; };
-
-      // Filled area
       for (var i = 0; i < profile.length - 1; i++) {
         var x1=xOf(profile[i].distance), x2=xOf(profile[i+1].distance);
         var y1=yOf(profile[i].elevation), y2=yOf(profile[i+1].elevation);
@@ -550,20 +449,16 @@
         ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x2,H-padBottom); ctx.lineTo(x1,H-padBottom);
         ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
       }
-      // Line
       ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       for (var i = 0; i < profile.length - 1; i++) {
         ctx.beginPath(); ctx.moveTo(xOf(profile[i].distance),yOf(profile[i].elevation));
         ctx.lineTo(xOf(profile[i+1].distance),yOf(profile[i+1].elevation));
         ctx.strokeStyle = profile[i].color; ctx.stroke();
       }
-      // Grid
       ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
       ctx.lineWidth = 1; ctx.setLineDash([4,4]);
       [0,0.5,1].forEach(function(f){ var y=padTop+drawH*(1-f); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); });
       ctx.setLineDash([]);
-
-      // Peak
       var peakIdx = 0;
       for (var i=1; i<profile.length; i++) { if (profile[i].elevation > profile[peakIdx].elevation) peakIdx = i; }
       var px=xOf(profile[peakIdx].distance), py=yOf(profile[peakIdx].elevation);
@@ -571,15 +466,11 @@
       ctx.beginPath(); ctx.moveTo(px,py-8); ctx.lineTo(px-4,py-2); ctx.lineTo(px+4,py-2); ctx.closePath(); ctx.fill();
       ctx.font = '600 10px -apple-system, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(maxElev.toFixed(0) + ' m', px, py - 11);
-
-      // Min
       var minIdx = 0;
       for (var i=1; i<profile.length; i++) { if (profile[i].elevation < profile[minIdx].elevation) minIdx = i; }
       ctx.fillStyle = isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.55)';
       ctx.textAlign = 'center';
       ctx.fillText(minElev.toFixed(0) + ' m', Math.max(30, Math.min(W-30, xOf(profile[minIdx].distance))), yOf(profile[minIdx].elevation) + 12);
-
-      // X axis
       ctx.fillStyle = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
       ctx.font = '500 9px -apple-system, sans-serif';
       ctx.textAlign = 'left'; ctx.fillText('0', 2, H-3);
@@ -591,27 +482,19 @@
       var canvas = document.getElementById('speed-canvas');
       var wrap = document.getElementById('speed-profile-wrap');
       if (!canvas || !wrap) return;
-
-      var isLight = ['light','outdoor','topo','bright','positron','liberty'].includes(styleName||'');
-      var W = wrap.clientWidth;
-      var H = chartHeight || 90;
+      var isLight = ['mapbox-light','mapbox-outdoor'].includes(styleName||'');
+      var W = wrap.clientWidth, H = chartHeight || 90;
       var dpr = window.devicePixelRatio || 1;
-      var padTop = 18, padBottom = 16;
-      var drawH = H - padTop - padBottom;
-
+      var padTop = 18, padBottom = 16, drawH = H - padTop - padBottom;
       canvas.width = W * dpr; canvas.height = H * dpr;
       canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
       var ctx = canvas.getContext('2d'); ctx.scale(dpr, dpr);
-
       var speeds = speedProfile.map(function(p){return p.speed;});
       var maxSpeed = Math.max.apply(null, speeds), minSpeed = Math.min.apply(null, speeds);
       var maxDist = sharedMaxDist || Math.max.apply(null, speedProfile.map(function(p){return p.distance;}));
       var speedRange = maxSpeed - minSpeed || 1;
-
       var xOf = function(d){ return (d/maxDist)*W; };
       var yOf = function(s){ return padTop + drawH - ((s-minSpeed)/speedRange)*drawH; };
-
-      // Filled area — use same color from track color mapping
       for (var i=0; i<speedProfile.length-1; i++) {
         var x1=xOf(speedProfile[i].distance), x2=xOf(speedProfile[i+1].distance);
         var y1=yOf(speedProfile[i].speed), y2=yOf(speedProfile[i+1].speed);
@@ -622,30 +505,23 @@
         ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.lineTo(x2,H-padBottom); ctx.lineTo(x1,H-padBottom);
         ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
       }
-      // Line
       ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
       for (var i=0; i<speedProfile.length-1; i++) {
         ctx.beginPath(); ctx.moveTo(xOf(speedProfile[i].distance),yOf(speedProfile[i].speed));
         ctx.lineTo(xOf(speedProfile[i+1].distance),yOf(speedProfile[i+1].speed));
         ctx.strokeStyle = speedProfile[i].color; ctx.stroke();
       }
-      // Grid
       ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
       ctx.lineWidth = 1; ctx.setLineDash([4,4]);
       [0,0.5,1].forEach(function(f){ var y=padTop+drawH*(1-f); ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); });
       ctx.setLineDash([]);
-
-      // Max speed marker
       var maxIdx = 0;
       for (var i=1; i<speedProfile.length; i++) { if (speedProfile[i].speed > speedProfile[maxIdx].speed) maxIdx = i; }
       var msx = xOf(speedProfile[maxIdx].distance), msy = yOf(speedProfile[maxIdx].speed);
-      // Small triangle marker (same style as elevation peak)
       ctx.fillStyle = isLight ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.8)';
       ctx.beginPath(); ctx.moveTo(msx,msy-8); ctx.lineTo(msx-4,msy-2); ctx.lineTo(msx+4,msy-2); ctx.closePath(); ctx.fill();
       ctx.font = '600 10px -apple-system, sans-serif'; ctx.textAlign = 'center';
       ctx.fillText(maxSpeed.toFixed(1)+' km/h', Math.max(40,Math.min(W-40,msx)), msy-11);
-
-      // Avg speed line
       var avgSpeed = speeds.reduce(function(a,b){return a+b;},0) / speeds.length;
       var avgY = yOf(avgSpeed);
       ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.2)';
@@ -655,8 +531,6 @@
       ctx.fillStyle = isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)';
       ctx.font = '500 9px -apple-system, sans-serif'; ctx.textAlign = 'right';
       ctx.fillText('avg '+avgSpeed.toFixed(1)+' km/h', W-4, avgY-4);
-
-      // X axis
       ctx.fillStyle = isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)';
       ctx.font = '500 9px -apple-system, sans-serif';
       ctx.textAlign = 'left'; ctx.fillText('0', 2, H-3);

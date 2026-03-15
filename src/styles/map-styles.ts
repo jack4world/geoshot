@@ -63,19 +63,33 @@ const RASTER_STYLES: Record<string, TileStyle> = {
   },
 };
 
+// Mapbox styles (require token)
+const MAPBOX_STYLES: Record<string, string> = {
+  "mapbox-outdoor": "mapbox://styles/mapbox/outdoors-v12",
+  "mapbox-satellite": "mapbox://styles/mapbox/satellite-streets-v12",
+  "mapbox-standard": "mapbox://styles/mapbox/standard",
+  "mapbox-dark": "mapbox://styles/mapbox/dark-v11",
+  "mapbox-light": "mapbox://styles/mapbox/light-v11",
+  "satellite": "mapbox://styles/mapbox/satellite-streets-v12",
+};
+
+export function isMapboxStyle(style: MapStyle): boolean {
+  return style in MAPBOX_STYLES;
+}
+
 export function getMapStyleConfig(
   style: MapStyle,
   mapboxToken?: string
 ): { style: object | string } {
-  // Mapbox satellite (requires token)
-  if (style === "satellite") {
+  // Mapbox styles (require token)
+  if (style in MAPBOX_STYLES) {
     if (!mapboxToken) {
       throw new Error(
-        "Satellite style requires --mapbox-token. Free alternatives: topo, terrain, liberty, bright, positron, outdoor, dark, light"
+        `${style} style requires --mapbox-token. Free alternatives: topo, terrain, liberty, bright, positron, outdoor, dark, light`
       );
     }
     return {
-      style: `mapbox://styles/mapbox/satellite-streets-v12`,
+      style: MAPBOX_STYLES[style],
     };
   }
 

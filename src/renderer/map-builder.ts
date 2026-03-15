@@ -30,6 +30,7 @@ export interface MapRenderConfig {
   contourLabelColor?: string;
   contourHaloColor?: string;
   terrain?: boolean;
+  mapboxToken?: string;
 }
 
 export function buildMapConfig(
@@ -37,7 +38,7 @@ export function buildMapConfig(
   camera: CameraParams,
   cameraPreset: CameraPreset,
   trackLayer: TrackLayerConfig,
-  options?: { styleName?: string; overlay?: OverlayData; contours?: boolean; waypoints?: WaypointMarker[]; terrain?: boolean }
+  options?: { styleName?: string; overlay?: OverlayData; contours?: boolean; waypoints?: WaypointMarker[]; terrain?: boolean; mapboxToken?: string }
 ): MapRenderConfig {
   // Pick contour colors based on style
   const isDark = options?.styleName === 'dark';
@@ -60,5 +61,6 @@ export function buildMapConfig(
     contourLabelColor: isDark ? 'rgba(200,200,200,0.6)' : 'rgba(80,80,80,0.65)',
     contourHaloColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.6)',
     terrain: options?.terrain,
+    mapboxToken: options?.mapboxToken,
   };
 }

@@ -2,8 +2,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { createPage, closeBrowser } from "./browser-manager.js";
+import { isMapboxStyle } from "../styles/map-styles.js";
 import type { MapRenderConfig } from "./map-builder.js";
-import type { ImageFormat } from "../types/index.js";
+import type { ImageFormat, MapStyle } from "../types/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,20 +26,20 @@ export async function renderImage(
   const page = await createPage(width, height, dpi);
 
   try {
-    // Load the map HTML template
-    const templatePath = join(__dirname, "templates", "map.html");
+    // Load the map HTML template — use Mapbox template for Mapbox styles
+    const useMapbox = config.styleName ? isMapboxStyle(config.styleName as MapStyle) : false;
+    const templateFile = useMapbox ? "map-mapbox.html" : "map.html";
+    const templatePath = join(__dirname, "templates", templateFile);
     let html: string;
     try {
       html = await readFile(templatePath, "utf-8");
     } catch {
-      // When running from dist, templates might be at a different path
-      // Fall back to the source path
       const srcTemplatePath = join(
         dirname(dirname(__dirname)),
         "src",
         "renderer",
         "templates",
-        "map.html"
+        templateFile,
       );
       html = await readFile(srcTemplatePath, "utf-8");
     }

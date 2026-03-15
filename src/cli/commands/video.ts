@@ -160,6 +160,7 @@ export async function runVideo(opts: {
       overlay,
       contours: opts.contours,
       terrain: opts.terrain,
+      mapboxToken: opts.mapboxToken,
     });
 
     // Step 5: Build camera keyframes
@@ -195,8 +196,12 @@ export async function runVideo(opts: {
       videoOpts,
       (pct) => {
         if (spinner) {
-          const framesRendered = Math.round((pct / 100) * totalFrames);
-          spinner.text = `Rendering video (${framesRendered}/${totalFrames} frames, ${pct}%)...`;
+          if (pct < 0) {
+            spinner.text = `Pre-loading terrain tiles...`;
+          } else {
+            const framesRendered = Math.round((pct / 100) * totalFrames);
+            spinner.text = `Rendering video (${framesRendered}/${totalFrames} frames, ${pct}%)...`;
+          }
         }
       },
     );

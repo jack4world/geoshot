@@ -229,6 +229,7 @@ export async function runImage(opts: {
       overlay,
       contours: opts.contours,
       waypoints,
+      mapboxToken: opts.mapboxToken,
     });
 
     // Step 5: Render

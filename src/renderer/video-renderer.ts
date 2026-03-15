@@ -3,8 +3,9 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { createPage, closeBrowser } from "./browser-manager.js";
+import { isMapboxStyle } from "../styles/map-styles.js";
 import type { MapRenderConfig } from "./map-builder.js";
-import type { CameraKeyframe, VideoOptions } from "../types/index.js";
+import type { CameraKeyframe, MapStyle, VideoOptions } from "../types/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -35,8 +36,10 @@ export async function renderVideo(
   const page = await createPage(width, height, dpi);
 
   try {
-    // Load video template
-    const templatePath = join(__dirname, "templates", "map-video.html");
+    // Load video template — use Mapbox template for Mapbox styles
+    const useMapbox = config.styleName ? isMapboxStyle(config.styleName as MapStyle) : false;
+    const templateFile = useMapbox ? "map-video-mapbox.html" : "map-video.html";
+    const templatePath = join(__dirname, "templates", templateFile);
     let html: string;
     try {
       html = await readFile(templatePath, "utf-8");
@@ -46,7 +49,7 @@ export async function renderVideo(
         "src",
         "renderer",
         "templates",
-        "map-video.html",
+        templateFile,
       );
       html = await readFile(srcTemplatePath, "utf-8");
     }
@@ -86,6 +89,40 @@ export async function renderVideo(
       }
     }
 
+    // Pre-warm: fly through camera path to cache all map + terrain tiles
+    const hasTerrain = !!(config as any).terrain;
+    if (hasTerrain) {
+      if (onProgress) onProgress(-1); // signal pre-warm phase
+      // Sample ~30 positions along the path to trigger tile loading
+      const warmSteps = Math.min(30, totalFrames);
+      for (let s = 0; s < warmSteps; s++) {
+        const idx = Math.floor((s / warmSteps) * (totalFrames - 1));
+        const kf = keyframes[idx];
+        await page.evaluate(
+          (center: any, zoom: number, bearing: number, pitch: number) => {
+            (window as any)._map.jumpTo({ center, zoom, bearing, pitch });
+          },
+          kf.center, kf.zoom, kf.bearing, kf.pitch,
+        );
+        await page.evaluate(
+          (timeout: number) => (window as any).waitForStable(timeout),
+          2000,
+        );
+      }
+      // Return to start position
+      const firstKf = keyframes[0];
+      await page.evaluate(
+        (center: any, zoom: number, bearing: number, pitch: number) => {
+          (window as any)._map.jumpTo({ center, zoom, bearing, pitch });
+        },
+        firstKf.center, firstKf.zoom, firstKf.bearing, firstKf.pitch,
+      );
+      await page.evaluate(
+        (timeout: number) => (window as any).waitForStable(timeout),
+        2000,
+      );
+    }
+
     // Find ffmpeg binary
     let ffmpegPath: string;
     try {
@@ -107,7 +144,7 @@ export async function renderVideo(
       ffmpegArgs.push("-i", musicPath);
       ffmpegArgs.push("-map", "0:v", "-map", "1:a");
       ffmpegArgs.push("-shortest");
-      ffmpegArgs.push("-af", `afade=t=out:st=${videoOpts.duration - 2}:d=2`);
+      ffmpegArgs.push("-af", `afade=t=in:d=2,afade=t=out:st=${videoOpts.duration - 2}:d=2`);
     }
 
     ffmpegArgs.push(
@@ -151,16 +188,22 @@ export async function renderVideo(
         totalFrames,
       );
 
-      // Wait for map to finish rendering (tiles loaded, terrain settled)
-      const waitTimeout = i < 3 ? 2000 : 500;
+      // Wait for map to finish rendering
+      // First few frames need longer waits for initial tile loading;
+      // after tiles are cached, use minimal wait
+      const waitTimeout =
+        i < 3 ? (hasTerrain ? 3000 : 1000) :
+        i < 10 ? (hasTerrain ? 1500 : 300) :
+        (hasTerrain ? 800 : 150);
       await page.evaluate(
         (timeout: number) => (window as any).waitForStable(timeout),
         waitTimeout,
       );
 
-      // Screenshot as PNG
+      // Screenshot as JPEG (much faster than PNG, ~3-5x smaller)
       const buffer = await page.screenshot({
-        type: "png",
+        type: "jpeg",
+        quality: 85,
         fullPage: false,
       });
 

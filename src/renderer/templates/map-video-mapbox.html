@@ -3,9 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.20.1/dist/maplibre-gl.css">
-  <script src="https://unpkg.com/maplibre-gl@5.20.1/dist/maplibre-gl.js"></script>
-  <script src="https://unpkg.com/maplibre-contour@0.1.0/dist/index.min.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
@@ -232,7 +231,7 @@
         if (p.elevation > elevMax) elevMax = p.elevation;
       });
       var elevRange = elevMax - elevMin || 1;
-      if (elevRange < 5) return; // flat track — nothing to show
+      if (elevRange < 5) return;
 
       var dpr = window.devicePixelRatio || 1;
       var rect = canvas.getBoundingClientRect();
@@ -242,16 +241,13 @@
 
       var w = canvas.width, h = canvas.height;
       var ctx = canvas.getContext('2d');
-      // Horizontal layout: X = track progress, Y = elevation (bottom=min, top=max)
       var padL = Math.round(8 * dpr), padR = Math.round(8 * dpr);
       var padT = Math.round(8 * dpr), padB = Math.round(10 * dpr);
       var cw = w - padL - padR, ch = h - padT - padB;
 
-      // X = progress index, Y = elevation (inverted: low at bottom)
       function cpx(i)    { return padL + (i / (profile.length - 1)) * cw; }
       function cpy(elev) { return (h - padB) - ((elev - elevMin) / elevRange) * ch; }
 
-      // Subtle silver fill from baseline to profile
       ctx.beginPath();
       ctx.moveTo(padL, h - padB);
       profile.forEach(function(p, i) { ctx.lineTo(cpx(i), cpy(p.elevation)); });
@@ -260,7 +256,6 @@
       ctx.fillStyle = 'rgba(190,200,220,0.35)';
       ctx.fill();
 
-      // Silver-gray outline only
       ctx.beginPath();
       profile.forEach(function(p, i) { i === 0 ? ctx.moveTo(cpx(i), cpy(p.elevation)) : ctx.lineTo(cpx(i), cpy(p.elevation)); });
       ctx.strokeStyle = 'rgba(210,220,235,0.90)';
@@ -280,10 +275,8 @@
     function updateElevTracker(progress, elevationM) {
       if (!_elevTrackerData) return;
       var d = _elevTrackerData;
-      // Cursor column: moves left→right with track progress
       var cursorX = d.cssPadL + progress * d.cssCw;
       document.getElementById('elev-cursor-col').style.left = cursorX + 'px';
-      // Dot: positioned at the current elevation on the Y axis
       var dotY = (d.cssH - d.cssPadB) - ((elevationM - d.elevMin) / d.elevRange) * d.cssCh;
       dotY = Math.max(d.cssPadT, Math.min(dotY, d.cssH - d.cssPadB));
       document.getElementById('elev-cursor-dot').style.top = dotY + 'px';
@@ -292,7 +285,7 @@
     }
 
     /**
-     * Initialize the video map. Called once from Node.js.
+     * Initialize the video map using Mapbox GL JS.
      * config: same as MapRenderConfig + videoExtras
      */
     window.initVideoMap = function(config) {
@@ -301,7 +294,10 @@
         _allCoords = config.allCoordinates || [];
         _trackColors = config.trackColors || [];
 
-        var map = new maplibregl.Map({
+        // Set Mapbox access token
+        mapboxgl.accessToken = config.mapboxToken || '';
+
+        var map = new mapboxgl.Map({
           container: 'map',
           style: config.style,
           center: config.center,
@@ -312,57 +308,20 @@
           preserveDrawingBuffer: true,
           fadeDuration: 0,
           interactive: false,
-          maxTileCacheSize: 500,
-          maxTileCacheZoomLevels: 5,
         });
 
         map.on('error', function(e) { console.error('Map error:', e.error); });
 
         map.on('load', function() {
-          // Contour lines
-          if (config.contours && typeof mlcontour !== 'undefined') {
-            var demSource = new mlcontour.DemSource({
-              url: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
-              encoding: 'terrarium', maxzoom: 13,
-            });
-            demSource.setupMaplibre(maplibregl);
-            map.addSource('contour-dem', {
-              type: 'raster-dem', tiles: [demSource.sharedDemProtocolUrl],
-              tileSize: 514, maxzoom: 13,
-            });
-            map.addSource('contour-source', {
-              type: 'vector',
-              tiles: [demSource.contourProtocolUrl({
-                thresholds: { 11:[100,500], 12:[50,200], 13:[20,100], 14:[10,50], 15:[10,50] },
-                elevationKey: 'ele', levelKey: 'level', contourLayer: 'contours',
-              })],
-              maxzoom: 16,
-            });
-            var layers = map.getStyle().layers;
-            var beforeLayer;
-            for (var l of layers) { if (l.type === 'symbol') { beforeLayer = l.id; break; } }
-            map.addLayer({
-              id: 'contour-lines', type: 'line', source: 'contour-source', 'source-layer': 'contours',
-              paint: { 'line-color': config.contourColor || 'rgba(100,100,100,0.4)', 'line-width': ['match',['get','level'],1,1,0.35], 'line-opacity': 0.5 },
-            }, beforeLayer);
-            map.addLayer({
-              id: 'contour-labels', type: 'symbol', source: 'contour-source', 'source-layer': 'contours',
-              filter: ['==',['get','level'],1],
-              layout: { 'symbol-placement':'line', 'text-field':['concat',['number-format',['get','ele'],{}],' m'], 'text-font':['Noto Sans Regular'], 'text-size':9, 'text-max-angle':25, 'text-padding':20 },
-              paint: { 'text-color': config.contourLabelColor||'rgba(80,80,80,0.65)', 'text-halo-color': config.contourHaloColor||'rgba(255,255,255,0.6)', 'text-halo-width':1.5 },
-            });
-          }
-
-          // 3D Terrain — always use a dedicated source (mlcontour protocol is incompatible)
+          // 3D Terrain — use Mapbox's native terrain DEM
           if (config.terrain) {
-            map.addSource('terrain-dem', {
+            map.addSource('mapbox-dem', {
               type: 'raster-dem',
-              tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
-              encoding: 'terrarium',
-              tileSize: 256,
-              maxzoom: 13,
+              url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+              tileSize: 512,
+              maxzoom: 14,
             });
-            map.setTerrain({ source: 'terrain-dem', exaggeration: 1.5 });
+            map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
           }
 
           // Track source — initially empty, will be updated per frame
@@ -380,7 +339,7 @@
             paint: { 'line-width': trackWidth + 5, 'line-color': 'rgba(0,0,0,0.45)', 'line-opacity': 0.7 },
           });
 
-          // Track main — use solid color segments (gradient computed per-frame)
+          // Track main
           map.addLayer({
             id: 'track', type: 'line', source: 'track',
             layout: { 'line-join': 'round', 'line-cap': 'round' },
@@ -416,7 +375,6 @@
             if (config.overlay.duration) subtitleParts.push(config.overlay.duration);
             document.getElementById('hero-subtitle').textContent = subtitleParts.join('  ·  ');
 
-            // Outro title and stats
             document.getElementById('outro-title').textContent = config.overlay.title;
             var outroHtml = '';
             if (config.overlay.distance) outroHtml += '<div class="hud-stat"><div class="outro-stat-value">' + config.overlay.distance + '</div><div class="outro-stat-label">距离</div></div>';
@@ -435,7 +393,6 @@
           );
 
           map.once('idle', function() {
-            // Terrain DEM tiles need extra time to fully load and render
             var waitMs = config.terrain ? 3000 : 600;
             setTimeout(function() { resolve(); }, waitMs);
           });
@@ -445,9 +402,6 @@
 
     /**
      * Advance one frame. Called from Node.js for each frame.
-     * kf: CameraKeyframe object
-     * frameIndex: current frame number
-     * totalFrames: total frame count
      */
     window.advanceFrame = function(kf, frameIndex, totalFrames) {
       if (!_map) return;
@@ -473,7 +427,6 @@
           properties: {},
         });
 
-        // Update current position dot
         var lastCoord = partial[partial.length - 1];
         _map.getSource('current-pos').setData({
           type: 'Feature',
@@ -481,9 +434,6 @@
           properties: {},
         });
       }
-
-      // ── Phase-based overlay transitions ──
-      // Title and HUD stay visible throughout (like 2D poster)
 
       // Always update HUD values
       document.getElementById('hud-distance').textContent = kf.distanceKm.toFixed(1) + ' km';
@@ -493,21 +443,15 @@
 
       if (kf.phase === 'intro') {
         var introT = frameIndex / (totalFrames * 0.15);
-        // Title: fade in
         document.getElementById('title-overlay').style.opacity = Math.min(1, introT * 2);
-        // HUD + elev tracker: fade in during second half of intro
         var hudAlpha = Math.min(1, Math.max(0, (introT - 0.5) * 4));
         document.getElementById('stats-hud').style.opacity = hudAlpha;
         document.getElementById('elev-tracker').style.opacity = hudAlpha;
         document.getElementById('outro-overlay').style.opacity = 0;
-
-        // Fade from black at the very start
         document.getElementById('fade-overlay').style.opacity = Math.max(0, 1 - introT * 3);
       }
       else if (kf.phase === 'fly') {
-        // Title stays visible (slightly dimmed)
         document.getElementById('title-overlay').style.opacity = 0.9;
-        // HUD + elev tracker stay visible
         document.getElementById('stats-hud').style.opacity = 1;
         document.getElementById('elev-tracker').style.opacity = 1;
         document.getElementById('outro-overlay').style.opacity = 0;
@@ -515,16 +459,12 @@
       }
       else if (kf.phase === 'outro') {
         var outroT = (frameIndex - totalFrames * 0.85) / (totalFrames * 0.15);
-        // Title stays visible
         document.getElementById('title-overlay').style.opacity = 0.9;
-        // HUD + elev tracker stay visible, fade slightly at end
         var outroHudAlpha = Math.max(0.3, 1 - outroT * 0.7);
         document.getElementById('stats-hud').style.opacity = outroHudAlpha;
         document.getElementById('elev-tracker').style.opacity = outroHudAlpha;
-        // Outro overlay fades in on top
         document.getElementById('outro-overlay').style.opacity = Math.min(1, outroT * 3);
 
-        // Show full track
         if (_allCoords.length > 0) {
           _map.getSource('track').setData({
             type: 'Feature',
@@ -532,32 +472,27 @@
             properties: {},
           });
         }
-        // Hide current position dot during outro
         _map.getSource('current-pos').setData({
           type: 'Feature',
           geometry: { type: 'Point', coordinates: [0, 0] },
           properties: {},
         });
 
-        // Fade to black at the very end
         document.getElementById('fade-overlay').style.opacity = Math.max(0, (outroT - 0.7) / 0.3);
       }
 
-      // Progress bar
       document.getElementById('progress-fill').style.width = (globalT * 100) + '%';
     };
 
     /**
      * Wait for map to finish rendering (all tiles loaded).
-     * Returns a promise that resolves when idle or after timeout.
      */
     window.waitForStable = function(timeoutMs) {
       if (!_map) return Promise.resolve();
       timeoutMs = timeoutMs || 300;
       var hasTerrain = _config && _config.terrain;
 
-      // For terrain: always wait for idle to ensure DEM mesh is fully rendered
-      // For non-terrain: fast path if tiles loaded
+      // Mapbox terrain is more stable than MapLibre's, but still needs settling
       if (!hasTerrain && _map.areTilesLoaded()) {
         return new Promise(function(resolve) {
           _map.triggerRepaint();
@@ -575,7 +510,6 @@
         var timer = setTimeout(finish, timeoutMs);
         _map.once('idle', function() {
           clearTimeout(timer);
-          // For terrain, wait an extra render cycle for mesh to settle
           if (hasTerrain) {
             _map.triggerRepaint();
             _map.once('render', function() {

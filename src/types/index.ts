@@ -41,7 +41,7 @@ export interface AnalyzedTrack {
 
 export type ColorByMetric = "elevation" | "speed" | "gradient" | "distance" | "none";
 export type ColorRamp = "turbo" | "viridis" | "plasma" | "inferno" | "rdylgn";
-export type MapStyle = "outdoor" | "dark" | "light" | "topo" | "terrain" | "satellite" | "liberty" | "bright" | "positron";
+export type MapStyle = "outdoor" | "dark" | "light" | "topo" | "terrain" | "satellite" | "liberty" | "bright" | "positron" | "mapbox-outdoor" | "mapbox-satellite" | "mapbox-standard" | "mapbox-dark" | "mapbox-light";
 export type Perspective = "auto" | "overhead" | "north-up";
 export type OutputFormat = "human" | "json";
 export type ImageFormat = "png" | "jpg" | "webp";
